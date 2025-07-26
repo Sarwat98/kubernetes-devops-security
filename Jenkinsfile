@@ -34,9 +34,11 @@ pipeline {
               //     def app = docker.build("devsecops/numeric-service:${env.BUILD_ID}", "-f Dockerfile .")
               //     app.push()
               // }
-              sh 'printenv' // to see if the environment variables are set correctly
-              sh "docker build -t farisali07/numeric-service:${GIT_COMMIT} ."
-              sh "docker push farisali07/numeric-service:${GIT_COMMIT}"
+              withDockerRegistry([credentialsId: 'docker-hub', url: '']) {
+                  sh 'printenv' // to see if the environment variables are set correctly
+                  sh "docker build -t farisali07/numeric-service:${GIT_COMMIT} ."
+                  sh "docker push farisali07/numeric-service:${GIT_COMMIT}"
+              }
           }
       }
     }
