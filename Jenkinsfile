@@ -19,15 +19,15 @@ pipeline {
               }
           }
       } 
-    // stage('SonarQube Analysis') {
-    //       steps {
-    //           script {
-    //               withSonarQubeEnv('sonarqube') {
-    //                   sh "mvn sonar:sonar"
-    //               }
-    //           }
-    //       }
-    //   }
+        // stage('SonarQube Analysis') {
+        //       steps {
+        //           script {
+        //               withSonarQubeEnv('sonarqube') {
+        //                   sh "mvn sonar:sonar"
+        //               }
+        //           }
+        //       }
+        //   }
       stage('Build Docker and Push Image') {
           steps {
               withDockerRegistry([credentialsId: 'docker-hub-token', url: '']) {
@@ -36,6 +36,18 @@ pipeline {
                   sh "docker push farisali07/numeric-service:${GIT_COMMIT}"
               }
           }
+      }
+      stage('Deploy to Kubernetes - DEV') {
+          steps {
+            withKubeConfig([credentialsId: 'kubeconfig']) {
+              script {
+                  def k8sConfig = readYaml file: 'k8s_deployment_service.yaml'
+                  k8sConfig.spec.template.spec.containers[0].image = "farisali07/numeric-service:${GIT_COMMIT}"
+                  writeYaml file: 'k8s_deployment_service.yaml', data: k8sConfig
+                  sh "kubectl apply -f k8s_deployment_service.yaml"
+              }
+          }
+        }
       }
     }
 }
