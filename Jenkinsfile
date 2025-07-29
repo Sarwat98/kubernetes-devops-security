@@ -41,9 +41,7 @@ pipeline {
           steps {
             withKubeConfig([credentialsId: 'kubeconfig']) {
               script {
-                  def k8sConfig = readYaml file: 'k8s_deployment_service.yaml'
-                  k8sConfig.spec.template.spec.containers[0].image = "farisali07/numeric-service:${GIT_COMMIT}"
-                  writeYaml file: 'k8s_deployment_service.yaml', data: k8sConfig
+                  sed -i 's|image:.*|image: farisali07/numeric-service:${GIT_COMMIT}|' k8s_deployment_service.yaml
                   sh "kubectl apply -f k8s_deployment_service.yaml"
               }
           }
