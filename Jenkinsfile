@@ -41,7 +41,7 @@ pipeline {
           steps {
             withKubeConfig([credentialsId: 'kubeconfig']) {
               script {
-                  sed -i 's|image:.*|image: farisali07/numeric-service:${GIT_COMMIT}|' k8s_deployment_service.yaml
+                  sh "sed -i 's|image:.*|image: farisali07/numeric-service:${GIT_COMMIT}|' k8s_deployment_service.yaml"
                   sh "kubectl apply -f k8s_deployment_service.yaml"
               }
           }
