@@ -33,7 +33,4 @@ spec:
   selector:
     app: devsecops
   type: NodePort
-
-
-
   

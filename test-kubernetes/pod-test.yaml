@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: privileged-pod
+spec:
+  containers:
+  - name: attacker
+    image: alpine
+    command: ["/bin/sh", "-c", "sleep 3600"]
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - name: host-volume
+      mountPath: /host
+  volumes:
+  - name: host-volume
+    hostPath:
+      path: /
+      type: Directory
