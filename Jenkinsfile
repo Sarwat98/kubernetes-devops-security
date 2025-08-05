@@ -30,7 +30,7 @@ pipeline {
                               pitHtmlReportDir: '**/target/pit-reports/**'
               }
           }
-          
+      }
         // stage('SonarQube Analysis') {
         //       steps {
         //           script {
