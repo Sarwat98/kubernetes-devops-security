@@ -30,13 +30,14 @@ pipeline {
                               pitHtmlReportDir: '**/target/pit-reports/**'
               }
           }
+          
         // stage('SonarQube Analysis') {
         //       steps {
         //           script {
         //               withSonarQubeEnv('sonarqube') {
         //                   sh "mvn sonar:sonar"
         //               }
-        //           }
+        //           }  
         //       }
         //   }
       stage('Build Docker and Push Image') {
