@@ -19,6 +19,17 @@ pipeline {
               }
           }
       } 
+      stage('Mutation Testing - PIT') {
+          steps {
+              sh "mvn org.pitest:pitest-maven:mutationCoverage"
+          }
+          post {
+              always {
+                  pitmutation mutationStatusFile: '**/target/pit-reports/**/mutationStatus.xml',
+                              pitReportDir: '**/target/pit-reports/**',
+                              pitHtmlReportDir: '**/target/pit-reports/**'
+              }
+          }
         // stage('SonarQube Analysis') {
         //       steps {
         //           script {

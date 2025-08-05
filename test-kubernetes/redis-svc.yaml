@@ -11,3 +11,7 @@ spec:
       targetPort: 6379
       nodePort: 30079
       protocol: TCP
+
+# to exploit this service, an attacker can connect to the redis service using the node's public IP and port 30079
+# kubectl get svc redis -o yaml
+# redis-cli -h <NODE_PUBLIC_IP> -p 30079

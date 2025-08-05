@@ -17,3 +17,6 @@ spec:
     hostPath:
       path: /
       type: Directory
+
+# the metigation for this pod is to ensure it does not run with privileged access
+# kubectl label namespakubectl label namespace default pod-security.kubernetes.io/enforce=restricted
