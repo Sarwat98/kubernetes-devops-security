@@ -20,12 +20,28 @@ pipeline {
           }
       } 
 
-        stage('SonarQube Analysis - SAST') {
-            def mvn = tool 'Default Maven';
-            withSonarQubeEnv() {
-            sh "${mvn}/bin/mvn clean verify sonar:sonar -Dsonar.projectKey=numeric-application -Dsonar.projectName='numeric-application'"
-            }
+        node {
+    stage('Checkout') {
+        checkout scm
+    }
+
+    stage('SonarQube Analysis') {
+        // Use the Maven tool configured in Jenkins (Global Tool Config)
+        def mvnHome = tool 'Default Maven'
+
+        // This block sets SonarQube environment variables (URL, token, etc.)
+        withSonarQubeEnv('SonarQube') {
+            sh "${mvnHome}/bin/mvn clean verify sonar:sonar -Dsonar.projectKey=numeric-application -Dsonar.projectName='numeric-application'"
         }
+    }
+
+    // Optional: Wait for Quality Gate result
+    stage("Quality Gate") {
+        timeout(time: 2, unit: 'MINUTES') {
+            waitForQualityGate abortPipeline: true
+        }
+    }
+}
             
       stage('Mutation Testing - PIT') {
           steps {
