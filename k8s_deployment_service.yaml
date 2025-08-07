@@ -18,6 +18,13 @@ spec:
       containers:
       - image: replace
         name: devsecops-container
+        securityContext:
+          capabilities:
+            drop:
+            - ALL
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
 ---
 apiVersion: v1
 kind: Service
