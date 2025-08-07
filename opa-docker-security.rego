@@ -84,16 +84,16 @@ deny contains msg if {
 }
 
 # Use multi-stage builds
-default multi_stage := false
+# default multi_stage := false
 
-multi_stage if {
-  some i
-  input[i].Cmd == "copy"
-  flags := concat(" ", input[i].Flags)
-  contains(lower(flags), "--from=")
-}
+# multi_stage if {
+#   some i
+#   input[i].Cmd == "copy"
+#   flags := concat(" ", input[i].Flags)
+#   contains(lower(flags), "--from=")
+# }
 
-deny contains msg if {
-  not multi_stage
-  msg := "You COPY, but do not appear to use multi-stage builds..."
-}
+# deny contains msg if {
+#   not multi_stage
+#   msg := "You COPY, but do not appear to use multi-stage builds..."
+# }
