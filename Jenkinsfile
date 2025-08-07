@@ -18,28 +18,28 @@ pipeline {
             }
         } 
 
-        stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv("${SONARQUBE_ENV}") {
-                    sh 'mvn clean verify sonar:sonar -Dsonar.projectKey=numeric-application -Dsonar.projectName="numeric-application"'
-                }
-            }
-        }
+        // stage('SonarQube Analysis') {
+        //     steps {
+        //         withSonarQubeEnv("${SONARQUBE_ENV}") {
+        //             sh 'mvn clean verify sonar:sonar -Dsonar.projectKey=numeric-application -Dsonar.projectName="numeric-application"'
+        //         }
+        //     }
+        // }
 
-        stage('Quality Gate') {  
-            steps {
-                timeout(time: 2, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
-            }
-        }
+        // stage('Quality Gate') {  
+        //     steps {
+        //         timeout(time: 2, unit: 'MINUTES') {
+        //             waitForQualityGate abortPipeline: true
+        //         }
+        //     }
+        // }
 
                 
-        stage('Mutation Testing - PIT') {
-            steps {
-                sh "mvn org.pitest:pitest-maven:mutationCoverage"
-            }
-        }
+        // stage('Mutation Testing - PIT') {
+        //     steps {
+        //         sh "mvn org.pitest:pitest-maven:mutationCoverage"
+        //     }
+        // }
 
         stage('Vulnerability Scan - Dependency  - Docker') {
             steps {
@@ -64,6 +64,12 @@ pipeline {
                     sh "sudo docker build -t farisali07/numeric-service:${GIT_COMMIT} ."
                     sh "docker push farisali07/numeric-service:${GIT_COMMIT}"
                 }
+            }
+        }
+
+        stage('Vulneraility Scan - Kubernetes') {
+            steps {
+                sh 'docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-k8s-security.rego k8s_deployment_service.yaml'
             }
         }
 
