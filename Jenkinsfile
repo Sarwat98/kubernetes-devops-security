@@ -58,7 +58,7 @@ pipeline {
             steps {
                 withDockerRegistry([credentialsId: 'docker-hub-token', url: '']) {
                     sh 'printenv' // to see if the environment variables are set correctly
-                    sh "docker build -t farisali07/numeric-service:${GIT_COMMIT} ."
+                    sh "sudo docker build -t farisali07/numeric-service:${GIT_COMMIT} ."
                     sh "docker push farisali07/numeric-service:${GIT_COMMIT}"
                 }
             }
