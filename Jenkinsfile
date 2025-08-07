@@ -16,12 +16,6 @@ pipeline {
             steps {
                 sh "mvn test"
             }
-            post {
-                always {
-                    junit 'target/surefire-reports/*.xml'
-                    jacoco execPattern: 'target/jacoco.exec'
-                }
-            }
         } 
 
         stage('SonarQube Analysis') {
@@ -45,21 +39,11 @@ pipeline {
             steps {
                 sh "mvn org.pitest:pitest-maven:mutationCoverage"
             }
-            post {
-                always {
-                    pitmutation mutationStatsFile: '**/target/pit-reports/**/mutations.xml'
-                }
-            }
         }
 
         stage('Vulnerability Scan - Dependency Check') {
             steps {
                 sh 'mvn dependency-check:check'
-            }
-            post {
-                always {
-                    dependencyCheckPublisher pattern: 'target/dependency-check-report.xml'
-                }
             }
         }
 
@@ -81,6 +65,21 @@ pipeline {
                     sh "kubectl apply -f k8s_deployment_service.yaml"
                 }
                 }
+            }
+        }
+
+        post { 
+            always {
+                        junit 'target/surefire-reports/*.xml'
+                        jacoco execPattern: 'target/jacoco.exec'
+                        pitmutation mutationStatsFile: '**/target/pit-reports/**/mutations.xml'
+                        dependencyCheckPublisher pattern: 'target/dependency-check-report.xml'
+            } 
+            success {
+                echo 'Pipeline completed successfully!'
+            }
+            failure {
+                echo 'Pipeline failed!'
             }
         }
     }
