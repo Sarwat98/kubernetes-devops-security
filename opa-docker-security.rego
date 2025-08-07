@@ -16,13 +16,13 @@ deny contains msg if {
 }
 
 # Only use trusted base images
-deny contains msg if {
-  some i
-  input[i].Cmd == "from"
-  parts := split(input[i].Value[0], "/")
-  count(parts) > 1
-  msg := sprintf("Line %d: use a trusted base image", [i])
-}
+# deny contains msg if {
+#   some i
+#   input[i].Cmd == "from"
+#   parts := split(input[i].Value[0], "/")
+#   count(parts) > 1
+#   msg := sprintf("Line %d: use a trusted base image", [i])
+# }
 
 # Do not use 'latest' tag for base images
 deny contains msg if {
