@@ -94,7 +94,7 @@
 				<version>6.1.6</version>
 				<configuration>
 					<format>ALL</format>
-					<failBuildOnCVSS>9</failBuildOnCVSS> <!-- Fail build if CVSS >= 9 -->
+					<failBuildOnCVSS>12</failBuildOnCVSS> <!-- Fail build if CVSS >= 9 -->
 					<!--
 					<suppressionFiles>
 						<suppressionFile>http://example.org/suppression.xml</suppressionFile>

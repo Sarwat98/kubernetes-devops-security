@@ -52,7 +52,7 @@ pipeline {
             }
         }
 
-        stage('Vulnerability Scan - Docker') {
+        stage('Vulnerability Scan - Dependency Check') {
             steps {
                 sh 'mvn dependency-check:check'
             }
@@ -62,7 +62,8 @@ pipeline {
                 }
             }
         }
-                stage('Build Docker and Push Image') {
+
+        stage('Build Docker and Push Image') {
             steps {
                 withDockerRegistry([credentialsId: 'docker-hub-token', url: '']) {
                     sh 'printenv' // to see if the environment variables are set correctly
@@ -71,6 +72,7 @@ pipeline {
                 }
             }
         }
+
         stage('Deploy to Kubernetes - DEV') {
             steps {
                 withKubeConfig([credentialsId: 'kubeconfig']) {
@@ -78,8 +80,8 @@ pipeline {
                     sh "sed -i 's|image:.*|image: farisali07/numeric-service:${GIT_COMMIT}|' k8s_deployment_service.yaml"
                     sh "kubectl apply -f k8s_deployment_service.yaml"
                 }
-            }
+                }
             }
         }
-        }
+    }
 }
