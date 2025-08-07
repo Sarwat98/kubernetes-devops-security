@@ -2,6 +2,12 @@ pipeline {
   agent any
   environment {
         SONARQUBE_ENV = 'SonarQube' // Optional: for clarity
+        deploymentName = "devsecops"
+        containerName  = "devsecops-container"
+        serviceName    = "devsecops-svc"
+        imageName      = "farisali07/numeric-service:${GIT_COMMIT}"
+        applicationURL = "http://devsecops-demo.eastus.cloudapp.azure.com/"
+        applicationURI = "/increment/99"
     }
 
   stages {
@@ -73,17 +79,36 @@ pipeline {
             }
         }
 
-        stage('Deploy to Kubernetes - DEV') {
+    //     stage('Deploy to Kubernetes - DEV') {
+    //         steps {
+    //             withKubeConfig([credentialsId: 'kubeconfig']) {
+    //             script {
+    //                 sh "sed -i 's|image:.*|image: farisali07/numeric-service:${GIT_COMMIT}|' k8s_deployment_service.yaml"
+    //                 sh "kubectl apply -f k8s_deployment_service.yaml"
+    //             }
+    //             }
+    //         }
+    //     }
+    // }
+
+        stage('K8S Deployment -- DEV') {
             steps {
-                withKubeConfig([credentialsId: 'kubeconfig']) {
-                script {
-                    sh "sed -i 's|image:.*|image: farisali07/numeric-service:${GIT_COMMIT}|' k8s_deployment_service.yaml"
-                    sh "kubectl apply -f k8s_deployment_service.yaml"
-                }
-                }
+                parallel(
+                    "Deployment": {
+                        withKubeConfig([credentialsId: 'kubeconfig']) {
+                            sh "bash k8s-deployment.sh"
+                        }
+                    },
+                    "Rollout Status": {
+                        withKubeConfig([credentialsId: 'kubeconfig']) {
+                            sh "bash k8s-deployment-rollout-status.sh"
+                        }
+                    }
+                )
             }
         }
-    }
+   }
+
     // post { 
     //         always {
     //                     junit 'target/surefire-reports/*.xml'
