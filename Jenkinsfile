@@ -11,7 +11,7 @@ pipeline {
                 archive 'target/*.jar' //so that they can be downloaded later
                 }
             }  
-            
+
         stage('Unit Tests -- JUnit and Jacoco') {
             steps {
                 sh "mvn test"
@@ -51,16 +51,18 @@ pipeline {
                 }
             }
         }
-            // stage('SonarQube Analysis') {
-            //       steps {
-            //           script {
-            //               withSonarQubeEnv('sonarqube') {
-            //                   sh "mvn sonar:sonar"
-            //               }
-            //           }  
-            //       }
-            //   }
-        stage('Build Docker and Push Image') {
+
+        stage('Vulnerability Scan - Docker') {
+            steps {
+                sh 'mvn dependency-check:check'
+            }
+            post {
+                always {
+                    dependencyCheckPublisher pattern: 'target/dependency-check-report.xml'
+                }
+            }
+        }
+                stage('Build Docker and Push Image') {
             steps {
                 withDockerRegistry([credentialsId: 'docker-hub-token', url: '']) {
                     sh 'printenv' // to see if the environment variables are set correctly
