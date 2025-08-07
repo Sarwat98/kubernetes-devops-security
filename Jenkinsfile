@@ -1,5 +1,8 @@
 pipeline {
   agent any
+  environment {
+        SONARQUBE_ENV = 'SonarQube' // Optional: for clarity
+    }
 
   stages {
         stage('Build Artifact') {
@@ -23,6 +26,13 @@ pipeline {
             steps {
                 withSonarQubeEnv("${SONARQUBE_ENV}") {
                     sh 'mvn clean verify sonar:sonar -Dsonar.projectKey=numeric-application -Dsonar.projectName="numeric-application"'
+                }
+            }
+        }
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 2, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
                 }
             }
         }
