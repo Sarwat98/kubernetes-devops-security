@@ -11,6 +11,7 @@ pipeline {
                 archive 'target/*.jar' //so that they can be downloaded later
                 }
             }  
+            
         stage('Unit Tests -- JUnit and Jacoco') {
             steps {
                 sh "mvn test"
@@ -22,6 +23,7 @@ pipeline {
                 }
             }
         } 
+
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv("${SONARQUBE_ENV}") {
@@ -29,7 +31,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Quality Gate') {  
             steps {
                 timeout(time: 2, unit: 'MINUTES') {
