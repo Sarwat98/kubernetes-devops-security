@@ -23,8 +23,12 @@ then
 
     if [[ "$http_code" == 200 ]];
     then
+        echo "Response: $response"
+        echo "HTTP Status Code: $http_code"
         echo "HTTP Status Code Test Passed"
     else
+        echo "Response: $response"
+        echo "HTTP Status Code: $http_code"
         echo "HTTP Status code is not 200"
         exit 1;
     fi;
