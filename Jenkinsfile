@@ -6,8 +6,8 @@ pipeline {
         containerName  = "devsecops-container"
         serviceName    = "devsecops-svc"
         imageName      = "farisali07/numeric-service:${GIT_COMMIT}"
-        applicationURL = "http://devsecops-demo.eastus.cloudapp.azure.com/"
-        applicationURI = "/increment/99"
+        applicationURL = "http://devsecops-demo.eastus.cloudapp.azure.com"
+        applicationURI = "/compare/99"
     }
 
   stages {
@@ -24,28 +24,28 @@ pipeline {
             }
         } 
 
-        // stage('SonarQube Analysis') {
-        //     steps {
-        //         withSonarQubeEnv("${SONARQUBE_ENV}") {
-        //             sh 'mvn clean verify sonar:sonar -Dsonar.projectKey=numeric-application -Dsonar.projectName="numeric-application"'
-        //         }
-        //     }
-        // }
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv("${SONARQUBE_ENV}") {
+                    sh 'mvn clean verify sonar:sonar -Dsonar.projectKey=numeric-application -Dsonar.projectName="numeric-application"'
+                }
+            }
+        }
 
-        // stage('Quality Gate') {  
-        //     steps {
-        //         timeout(time: 2, unit: 'MINUTES') {
-        //             waitForQualityGate abortPipeline: true
-        //         }
-        //     }
-        // }
+        stage('Quality Gate') {  
+            steps {
+                timeout(time: 2, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
 
                 
-        // stage('Mutation Testing - PIT') {
-        //     steps {
-        //         sh "mvn org.pitest:pitest-maven:mutationCoverage"
-        //     }
-        // }
+        stage('Mutation Testing - PIT') {
+            steps {
+                sh "mvn org.pitest:pitest-maven:mutationCoverage"
+            }
+        }
 
         stage('Vulnerability Scan - Dependency  - Docker') {
             steps {
@@ -117,20 +117,37 @@ pipeline {
                 )
             }
         }
+        stage('Integration Tests - DEV') {
+            steps {
+                script {
+                try {
+                    withKubeConfig([credentialsId: 'kubeconfig']) {
+                    sh 'bash integration-test.sh'
+                    }
+                } catch (e) {
+                    withKubeConfig([credentialsId: 'kubeconfig']) {
+                    sh "kubectl -n default rollout undo deploy ${deploymentName}"
+                    }
+                    throw e
+                }
+                }
+            }
+        }
+
    }
 
-    // post { 
-    //         always {
-    //                     junit 'target/surefire-reports/*.xml'
-    //                     jacoco execPattern: 'target/jacoco.exec'
-    //                     pitmutation mutationStatsFile: '**/target/pit-reports/**/mutations.xml'
-    //                     dependencyCheckPublisher pattern: 'target/dependency-check-report.xml'
-    //         } 
-    //         success {
-    //             echo 'Pipeline completed successfully!'
-    //         }
-    //         failure {
-    //             echo 'Pipeline failed!'
-    //         }
-    //     }
+    post { 
+            always {
+                        junit 'target/surefire-reports/*.xml'
+                        jacoco execPattern: 'target/jacoco.exec'
+                        pitmutation mutationStatsFile: '**/target/pit-reports/**/mutations.xml'
+                        dependencyCheckPublisher pattern: 'target/dependency-check-report.xml'
+            } 
+            success {
+                echo 'Pipeline completed successfully!'
+            }
+            failure {
+                echo 'Pipeline failed!'
+            }
+        }
 }
