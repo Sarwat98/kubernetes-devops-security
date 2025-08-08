@@ -19,6 +19,9 @@ spec:
       containers:
       - image: replace
         name: devsecops-container
+        volumeMounts:
+        - mountPath: /tmp
+          name: cache-volume
         securityContext:
           capabilities:
             drop:
@@ -26,7 +29,10 @@ spec:
           runAsGroup: 1000
           runAsNonRoot: true
           runAsUser: 1000
-          readOnlyRootFilesystem: true
+          readOnlyRootFilesystem: 
+      volumes:
+      - name: cache-volume
+        emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
