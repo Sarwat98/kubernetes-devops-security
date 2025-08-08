@@ -29,7 +29,7 @@ spec:
           runAsGroup: 1000
           runAsNonRoot: true
           runAsUser: 1000
-          readOnlyRootFilesystem: 
+          readOnlyRootFilesystem: true
       volumes:
       - name: cache-volume
         emptyDir: {}
