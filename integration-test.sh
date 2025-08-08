@@ -11,7 +11,7 @@ echo $applicationURL:$PORT/$applicationURI
 if [[ ! -z "$PORT" ]];
 then
     response=$(curl -s $applicationURL:$PORT$applicationURI)
-    http_code=$(curl -s -o /dev/null -w "%{http_code}" $applicationURL:$PORT$applicationURI)
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" $applicationURL:$PORT/$applicationURI)
 
     # if [[ "$response" == "Greater than 50" ]];
     # then
