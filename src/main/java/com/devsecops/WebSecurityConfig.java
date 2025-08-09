@@ -1,5 +1,4 @@
 package com.devsecops;
-
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -14,15 +13,11 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
         http
             .headers()
-                .defaultsDisabled()
-                .addHeaderWriter((request, response) -> 
-                    response.addHeader("X-Content-Type-Options", "nosniff")) // Use string header name directly
+            .defaultsDisabled()
+            .addHeaderWriter((request, response) -> 
+                response.addHeader("X-Content-Type-Options", "nosniff")) // Use string header name directly
             .and()
-            .csrf().disable() // Disable CSRF protection for stateless API (if needed)
-            .authorizeRequests()
-                .antMatchers("/api/**").permitAll() // Allow access to /api/** without authentication
-                .anyRequest().authenticated() // All other requests require authentication
-            .and()
+            .csrf().disable() // Disable CSRF protection
             .httpBasic(); // Basic auth, if you're using it
     }
 }
