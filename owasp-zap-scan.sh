@@ -5,7 +5,7 @@ PORT=$(kubectl -n default get svc ${serviceName} -o json | jq .spec.ports[].node
 # first run this
 chmod 777 $(pwd)
 echo $(id -u):$(id -g)
-docker run --rm -v $(pwd):/zap/wrk/:rw -t owasp/zap2docker-weekly zap-api-scan.py -t $applicationURL:$PORT/v3/api-docs -f openapi -r zap_report.html
+docker run --rm -v $(pwd):/zap/wrk/:rw -t zaproxy/zap-stable:latest zap-api-scan.py -t $applicationURL:$PORT/v3/api-docs -f openapi -r zap_report.html
 
 exit_code=$?
 # comment above cmd and uncomment below lines to run with CUSTOM RULES
