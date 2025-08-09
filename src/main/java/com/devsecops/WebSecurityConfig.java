@@ -18,7 +18,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 response.addHeader("X-Content-Type-Options", "nosniff")) // Use string header name directly
             .and()
             .csrf().disable() // Disable CSRF protection
-            .authorizeRequests()
-            .anyRequest().authenticated(); // Customize according to your needs
+            .httpBasic(); // Basic auth, if you're using it
     }
 }
