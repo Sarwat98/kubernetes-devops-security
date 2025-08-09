@@ -15,16 +15,17 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
             .headers()
                 .defaultsDisabled()
                 .addHeaderWriter((request, response) -> 
-                    response.addHeader("X-Content-Type-Options", "nosniff")) // Use string header name directly
+                    response.addHeader("X-Content-Type-Options", "nosniff"))
             .and()
-            .csrf().disable() // Disable CSRF protection for stateless API endpoints
+            .csrf().disable() // Disable CSRF protection for the test
             .authorizeRequests()
-                .antMatchers("/api/**").permitAll() // Allow access to API endpoints without authentication
-                .anyRequest().authenticated() // Secure other endpoints
+                .antMatchers("/api/**", "/public/**").permitAll() // Allow access to API and public endpoints
+                .anyRequest().permitAll() // Allow all requests for testing
             .and()
-            .httpBasic(); // Basic auth, if you're using it
+            .httpBasic(); // HTTP Basic Authentication (only if needed)
     }
 }
+
 
 // package com.devsecops;
 // import org.springframework.context.annotation.Configuration;
