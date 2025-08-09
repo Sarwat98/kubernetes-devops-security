@@ -1,4 +1,4 @@
-@library('slack') _
+@Library('slack') _ // Import the Slack library for notifications
 
 pipeline {
   agent any
