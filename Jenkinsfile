@@ -144,16 +144,16 @@ pipeline {
             }
         }
 
-        stage('Burp DAST Scan') {
-            steps {
-                script {
-                    // Run Burp Suite DAST Scan
-                    sh """
-                        java -jar /path/to/burp-suite.jar --project-file=/path/to/project.burp --headless --scan --url http://your-app-url
-                    """
-                }
-            }
-        }
+        // stage('Burp DAST Scan') {
+        //     steps {
+        //         script {
+        //             // Run Burp Suite DAST Scan
+        //             // sh """
+        //             //     java -jar /path/to/burp-suite.jar --project-file=/path/to/project.burp --headless --scan --url http://your-app-url
+        //             // """
+        //         }
+        //     }
+        // }
 
         stage('Prompte to PROD') {
             steps {
