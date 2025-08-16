@@ -102,6 +102,18 @@ pipeline {
                 }
             }
         }
+
+        stage('InSpec - K8s checks') {
+            steps {
+        // use read-only kubeconfig from Jenkins credentials
+        withCredentials([file(credentialsId: 'kubeconfig')]) {
+                sh '''
+                    echo "Running InSpec checks on Kubernetes cluster"
+                    inspec exec k8s-deploy-audit -t local:// --input ns=prod deploy_name=devsecops label_key=app label_val=devsecops --input ignore_containers='["istio-proxy"]' --reporter cli
+          '''
+        }
+        }
+        }
     
 
         stage('K8S Deployment -- DEV') {
@@ -189,17 +201,7 @@ pipeline {
         //     }
         // }
 
-        stage('InSpec - K8s checks') {
-            steps {
-        // use read-only kubeconfig from Jenkins credentials
-        withCredentials([file(credentialsId: 'kubeconfig')]) {
-                sh '''
-                    echo "Running InSpec checks on Kubernetes cluster"
-                    inspec exec k8s-deploy-audit -t local:// --input ns=prod deploy_name=devsecops label_key=app label_val=devsecops --input ignore_containers='["istio-proxy"]' --reporter cli
-          '''
-        }
-        }
-        }
+        
 
         // stage('K8S Deployment -- PROD') {
         //     steps {
