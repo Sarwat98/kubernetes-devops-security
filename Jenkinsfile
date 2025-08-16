@@ -111,10 +111,11 @@ pipeline {
                         set -eux
                         inspec check k8s-deploy-audit
                         inspec exec k8s-deploy-audit -t local:// \
+                            --chef-license accept-silent \
                             --input ns=prod deploy_name=devsecops label_key=app label_val=devsecops \
                             --input ignore_containers="istio-proxy" \
                             --reporter cli
-                        '''
+                    '''
                 }
                 }
             }
