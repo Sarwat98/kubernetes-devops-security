@@ -107,7 +107,7 @@ pipeline {
             steps {
                 withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
                 withEnv(['JAVA_TOOL_OPTIONS=', '_JAVA_OPTIONS=', 'MAVEN_OPTS=', 'JACOCO_AGENT=']) {
-                     sh "inspec-scan.sh"
+                     sh "bash inspec-scan.sh"
                 }
                 }
             }
