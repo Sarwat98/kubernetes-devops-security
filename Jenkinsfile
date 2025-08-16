@@ -120,13 +120,7 @@ pipeline {
                                 set -eu
                                 cd /work
 
-                                # OPTIONAL: install kubectl inside the container if not present
-                                if ! command -v kubectl >/dev/null 2>&1; then
-                                echo "Installing kubectl..."
-                                curl -fsSL -o /usr/local/bin/kubectl \
-                                    "https://dl.k8s.io/release/$(curl -fsSL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-                                chmod +x /usr/local/bin/kubectl
-                                fi
+                                
 
                                 kubectl version --client --short || true
                                 inspec version
