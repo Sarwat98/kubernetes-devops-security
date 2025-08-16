@@ -107,15 +107,7 @@ pipeline {
             steps {
                 withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
                 withEnv(['JAVA_TOOL_OPTIONS=', '_JAVA_OPTIONS=', 'MAVEN_OPTS=', 'JACOCO_AGENT=']) {
-                    sh '''
-                        set -eux
-                        inspec check k8s-deploy-audit
-                        inspec exec k8s-deploy-audit -t local:// \
-                            --chef-license accept-silent \
-                            --input ns=prod deploy_name=devsecops label_key=app label_val=devsecops \
-                            --input ignore_containers="istio-proxy" \
-                            --reporter cli
-                    '''
+                     sh "inspec-scan.sh"
                 }
                 }
             }
