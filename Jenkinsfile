@@ -222,23 +222,23 @@ pipeline {
 
    }
 
-    post { 
-            always {
-                        junit 'target/surefire-reports/*.xml'
-                        jacoco execPattern: 'target/jacoco.exec'
-                        pitmutation mutationStatsFile: '**/target/pit-reports/**/mutations.xml'
-                        dependencyCheckPublisher pattern: 'target/dependency-check-report.xml'
-                        publishHTML([allowMissing: false, alwaysLinkToLastBuild: true, icon: '', keepAll: true, reportDir: 'owasp-zap-report', reportFiles: 'zap_report.html', reportName: 'OWASP ZAP HTML Report', reportTitles: 'OWASP ZAP HTML Report', useWrapperFileDirectly: true])
-                        // sendNotification(currentBuild.currentResult ?: 'SUCCESS')
-                        sendNotification currentBuild.result 
-                        junit 'k8s-deploy-audit/inspec-junit.xml'
-                        archiveArtifacts artifacts: 'k8s-deploy-audit/inspec.json', fingerprint: true
-            } 
-            success {
-                echo 'Pipeline completed successfully!'
-            }
-            failure {
-                echo 'Pipeline failed!'
-            }
-        }
+    // post { 
+    //         always {
+    //                     junit 'target/surefire-reports/*.xml'
+    //                     jacoco execPattern: 'target/jacoco.exec'
+    //                     pitmutation mutationStatsFile: '**/target/pit-reports/**/mutations.xml'
+    //                     dependencyCheckPublisher pattern: 'target/dependency-check-report.xml'
+    //                     publishHTML([allowMissing: false, alwaysLinkToLastBuild: true, icon: '', keepAll: true, reportDir: 'owasp-zap-report', reportFiles: 'zap_report.html', reportName: 'OWASP ZAP HTML Report', reportTitles: 'OWASP ZAP HTML Report', useWrapperFileDirectly: true])
+    //                     // sendNotification(currentBuild.currentResult ?: 'SUCCESS')
+    //                     sendNotification currentBuild.result 
+    //                     junit 'k8s-deploy-audit/inspec-junit.xml'
+    //                     archiveArtifacts artifacts: 'k8s-deploy-audit/inspec.json', fingerprint: true
+    //         } 
+    //         success {
+    //             echo 'Pipeline completed successfully!'
+    //         }
+    //         failure {
+    //             echo 'Pipeline failed!'
+    //         }
+    //     }
 }
