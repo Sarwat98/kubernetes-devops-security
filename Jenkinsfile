@@ -103,54 +103,26 @@ pipeline {
             }
         }
 
-        stage('InSpec - K8s checks') {
-             steps {
-                // bind the kubeconfig to KUBECONFIG
-                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
-                // make sure any JaCoCo/Java agents don't interfere
-                withEnv(['JAVA_TOOL_OPTIONS=', 'JACOCO_AGENT=', 'JACOCO_HOME=']) {
-                    sh '''#!/usr/bin/env bash
-                    set -euxo pipefail
-
-                    echo "== sanity: kubectl can talk to the cluster =="
-                    kubectl version --short
-                    kubectl get ns | head
-                    kubectl get deploy -n prod devsecops -o wide || true
-                    kubectl get pods -n prod -l app=devsecops || true
-
-                    echo "== ensure InSpec exists =="
-                    if ! command -v inspec >/dev/null 2>&1; then
-                        curl -sSL https://omnitruck.chef.io/install.sh | sudo bash -s -- -P inspec
-                    fi
-                    inspec version
-
-                    echo "== run InSpec profile =="
-                    test -d k8s-deploy-audit || { echo "Missing k8s-deploy-audit/ in workspace"; exit 2; }
-                    cd k8s-deploy-audit
-
-                    # first run
-                    set +e
-                    inspec exec . -t local:// \
+        stage('InSpec - in Docker') {
+            withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                sh '''
+                set -euxo pipefail
+                docker run --rm \
+                    -v "$PWD":/work \
+                    -v "$KUBECONFIG":/root/.kube/config:ro \
+                    -e KUBECONFIG=/root/.kube/config \
+                    -e CHEF_LICENSE=accept-silent \
+                    -e JAVA_TOOL_OPTIONS= -e _JAVA_OPTIONS= -e MAVEN_OPTS= -e JACOCO_AGENT= \
+                    chef/inspec:5 sh -lc '
+                    cd /work &&
+                    inspec exec k8s-deploy-audit -t local:// \
                         --input ns=prod deploy_name=devsecops label_key=app label_val=devsecops \
-                        --input ignore_containers='["istio-proxy"]' \
-                        --reporter cli json:inspec.json junit:inspec-junit.xml
-                    rc=$?
-                    set -e
-                    echo "InSpec exit code: $rc"
-
-                    # if it failed, re-run with debug so the log shows why
-                    if [ $rc -ne 0 ]; then
-                        inspec exec . -t local:// \
-                        --input ns=prod deploy_name=devsecops label_key=app label_val=devsecops \
-                        --input ignore_containers='["istio-proxy"]' \
-                        -l debug --reporter cli || true
-                        exit $rc
-                    fi
-                    '''
-                }
+                        --input ignore_containers="[\\\"istio-proxy\\\"]" \
+                        --reporter cli
+                    '
+                '''
             }
-        }
-    }
+}
     
 
         stage('K8S Deployment -- DEV') {
