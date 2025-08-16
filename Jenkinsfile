@@ -116,7 +116,7 @@ pipeline {
                         -e KUBECONFIG=/root/.kube/config \
                         -e CHEF_LICENSE=accept-silent \
                         -e JAVA_TOOL_OPTIONS= -e _JAVA_OPTIONS= -e MAVEN_OPTS= -e JACOCO_AGENT= \
-                        chef/inspec:5 bash -lc '
+                        chef/inspec:5 sh -lc '
                             set -Eeuo pipefail
                             cd /work
                             inspec exec k8s-deploy-audit -t local:// \
