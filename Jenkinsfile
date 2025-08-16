@@ -14,18 +14,18 @@ pipeline {
     }
 
   stages {
-        // stage('Build Artifact') {
-        //         steps {
-        //         sh "mvn clean package -DskipTests=true"
-        //         archive 'target/*.jar' //so that they can be downloaded later
-        //         }
-        //     }  
+        stage('Build Artifact') {
+                steps {
+                sh "mvn clean package -DskipTests=true"
+                archive 'target/*.jar' //so that they can be downloaded later
+                }
+            }  
 
-        // stage('Unit Tests -- JUnit and Jacoco') {
-        //     steps {
-        //         sh "mvn test"
-        //     }
-        // } 
+        stage('Unit Tests -- JUnit and Jacoco') {
+            steps {
+                sh "mvn test"
+            }
+        } 
 
         // stage('SonarQube Analysis') {
         //     steps {
@@ -66,15 +66,15 @@ pipeline {
         //     }
         // }
 
-        // stage('Build Docker and Push Image') {
-        //     steps {
-        //         withDockerRegistry([credentialsId: 'docker-hub-token', url: '']) {
-        //             sh 'printenv' // to see if the environment variables are set correctly
-        //             sh "sudo docker build -t farisali07/numeric-service:${GIT_COMMIT} ."
-        //             sh "docker push farisali07/numeric-service:${GIT_COMMIT}"
-        //         }
-        //     }
-        // }
+        stage('Build Docker and Push Image') {
+            steps {
+                withDockerRegistry([credentialsId: 'docker-hub-token', url: '']) {
+                    sh 'printenv' // to see if the environment variables are set correctly
+                    sh "sudo docker build -t farisali07/numeric-service:${GIT_COMMIT} ."
+                    sh "docker push farisali07/numeric-service:${GIT_COMMIT}"
+                }
+            }
+        }
 
         // stage('Vulneraility Scan - Kubernetes') {
         //     steps {
@@ -92,34 +92,34 @@ pipeline {
         //     }
         // }
 
-        // stage('Deploy to Kubernetes - DEV') {
-        //     steps {
-        //         withKubeConfig([credentialsId: 'kubeconfig']) {
-        //         script {
-        //             sh "sed -i 's|image:.*|image: farisali07/numeric-service:${GIT_COMMIT}|' k8s_deployment_service.yaml"
-        //             sh "kubectl apply -f k8s_deployment_service.yaml"
-        //         }
-        //         }
-        //     }
-        // }
+        stage('Deploy to Kubernetes - DEV') {
+            steps {
+                withKubeConfig([credentialsId: 'kubeconfig']) {
+                script {
+                    sh "sed -i 's|image:.*|image: farisali07/numeric-service:${GIT_COMMIT}|' k8s_deployment_service.yaml"
+                    sh "kubectl apply -f k8s_deployment_service.yaml"
+                }
+                }
+            }
+        }
     
 
-        // stage('K8S Deployment -- DEV') {
-        //     steps {
-        //         parallel(
-        //             "Deployment": {
-        //                 withKubeConfig([credentialsId: 'kubeconfig']) {
-        //                     sh "bash k8s-deployment.sh"
-        //                 }
-        //             },
-        //             "Rollout Status": {
-        //                 withKubeConfig([credentialsId: 'kubeconfig']) {
-        //                     sh "bash k8s-deployment-rollout-status.sh"
-        //                 }
-        //             }
-        //         )
-        //     }
-        // }
+        stage('K8S Deployment -- DEV') {
+            steps {
+                parallel(
+                    "Deployment": {
+                        withKubeConfig([credentialsId: 'kubeconfig']) {
+                            sh "bash k8s-deployment.sh"
+                        }
+                    },
+                    "Rollout Status": {
+                        withKubeConfig([credentialsId: 'kubeconfig']) {
+                            sh "bash k8s-deployment-rollout-status.sh"
+                        }
+                    }
+                )
+            }
+        }
         // stage('Integration Tests - DEV') {
         //     steps {
         //         script {
@@ -194,18 +194,8 @@ pipeline {
         // use read-only kubeconfig from Jenkins credentials
         withCredentials([file(credentialsId: 'kubeconfig')]) {
                 sh '''
-                    set -e
-                    # Ensure inspec is available (install if missing)
-                    if ! command -v inspec >/dev/null 2>&1; then
-                    curl -sSL https://omnitruck.chef.io/install.sh | sudo bash -s -- -P inspec
-                    fi
-
-                    # run the profile (we use kubectl via -t local://)
-                    cd k8s-deploy-audit
-                    inspec exec . -t local:// \
-                    --input ns=prod deploy_name=devsecops label_key=app label_val=devsecops \
-                    --input ignore_containers='["istio-proxy"]' \
-                    --reporter cli json:inspec.json junit:inspec-junit.xml
+                    echo "Running InSpec checks on Kubernetes cluster"
+                    inspec exec k8s-deploy-audit -t local:// --input ns=prod deploy_name=devsecops label_key=app label_val=devsecops --input ignore_containers='["istio-proxy"]' --reporter cli
           '''
         }
         }
@@ -241,6 +231,8 @@ pipeline {
                         publishHTML([allowMissing: false, alwaysLinkToLastBuild: true, icon: '', keepAll: true, reportDir: 'owasp-zap-report', reportFiles: 'zap_report.html', reportName: 'OWASP ZAP HTML Report', reportTitles: 'OWASP ZAP HTML Report', useWrapperFileDirectly: true])
                         // sendNotification(currentBuild.currentResult ?: 'SUCCESS')
                         sendNotification currentBuild.result 
+                        junit 'k8s-deploy-audit/inspec-junit.xml'
+                        archiveArtifacts artifacts: 'k8s-deploy-audit/inspec.json', fingerprint: true
             } 
             success {
                 echo 'Pipeline completed successfully!'
