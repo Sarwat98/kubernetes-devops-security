@@ -108,23 +108,35 @@ pipeline {
                 withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
                 withEnv(['JAVA_TOOL_OPTIONS=', '_JAVA_OPTIONS=', 'MAVEN_OPTS=', 'JACOCO_AGENT=']) {
                     sh '''#!/usr/bin/env bash
-                        set -Eeuo pipefail
-
-                        docker run --rm \
-                        -v "$PWD":/work \
-                        -v "$KUBECONFIG":/root/.kube/config:ro \
-                        -e KUBECONFIG=/root/.kube/config \
-                        -e CHEF_LICENSE=accept-silent \
-                        -e JAVA_TOOL_OPTIONS= -e _JAVA_OPTIONS= -e MAVEN_OPTS= -e JACOCO_AGENT= \
-                        chef/inspec:5 sh -lc '
                             set -Eeuo pipefail
-                            cd /work
-                            inspec exec k8s-deploy-audit -t local:// \
-                            --input ns=prod deploy_name=devsecops label_key=app label_val=devsecops \
-                            --input ignore_containers="[\"istio-proxy\"]" \
-                            --reporter cli json:inspec.json junit:inspec-junit.xml
-                        '
-                        '''
+
+                            docker run --rm \
+                            -v "$PWD":/work \
+                            -v "$KUBECONFIG":/root/.kube/config:ro \
+                            -e KUBECONFIG=/root/.kube/config \
+                            -e CHEF_LICENSE=accept-silent \
+                            -e JAVA_TOOL_OPTIONS= -e _JAVA_OPTIONS= -e MAVEN_OPTS= -e JACOCO_AGENT= \
+                            chef/inspec:5 sh -lc '
+                                set -eu
+                                cd /work
+
+                                # OPTIONAL: install kubectl inside the container if not present
+                                if ! command -v kubectl >/dev/null 2>&1; then
+                                echo "Installing kubectl..."
+                                curl -fsSL -o /usr/local/bin/kubectl \
+                                    "https://dl.k8s.io/release/$(curl -fsSL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+                                chmod +x /usr/local/bin/kubectl
+                                fi
+
+                                kubectl version --client --short || true
+                                inspec version
+
+                                inspec exec k8s-deploy-audit -t local:// \
+                                --input ns=prod deploy_name=devsecops label_key=app label_val=devsecops \
+                                --input ignore_containers="[\\\"istio-proxy\\\"]" \
+                                --reporter cli json:inspec.json junit:inspec-junit.xml
+                            '
+                            '''
                 }
                 }
             }
