@@ -1,51 +1,51 @@
-# apiVersion: apps/v1
-# kind: Deployment
-# metadata:
-#   labels:
-#     app: devsecops
-#   name: devsecops
-# spec:
-#   replicas: 2
-#   selector:
-#     matchLabels:
-#       app: devsecops
-#   strategy: {}
-#   template:
-#     metadata:
-#       labels:
-#         app: devsecops
-#     spec:
-#       serviceAccountName: default
-#       containers:
-#       - image: replace
-#         name: devsecops-container
-#         volumeMounts:
-#         - mountPath: /tmp
-#           name: cache-volume
-#         securityContext:
-#           capabilities:
-#             drop:
-#             - ALL
-#           runAsGroup: 1000
-#           runAsNonRoot: true
-#           runAsUser: 1000
-#           readOnlyRootFilesystem: true
-#       volumes:
-#       - name: cache-volume
-#         emptyDir: {}
-# ---
-# apiVersion: v1
-# kind: Service
-# metadata:
-#   labels:
-#     app: devsecops
-#   name: devsecops-svc
-# spec:
-#   ports:
-#   - port: 8080
-#     protocol: TCP
-#     targetPort: 8080
-#   selector:
-#     app: devsecops
-#   type: NodePort
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: devsecops
+  name: devsecops
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: devsecops
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: devsecops
+    spec:
+      serviceAccountName: default
+      containers:
+      - image: replace
+        name: devsecops-container
+        volumeMounts:
+        - mountPath: /tmp
+          name: cache-volume
+        securityContext:
+          capabilities:
+            drop:
+            - ALL
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          readOnlyRootFilesystem: true
+      volumes:
+      - name: cache-volume
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: devsecops
+  name: devsecops-svc
+spec:
+  ports:
+  - port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app: devsecops
+  type: NodePort
   
