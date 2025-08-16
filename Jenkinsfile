@@ -188,6 +188,7 @@ pipeline {
                 }
             }
         }
+
         stage('InSpec - K8s checks') {
             steps {
         // use read-only kubeconfig from Jenkins credentials
@@ -206,6 +207,7 @@ pipeline {
                     --input ignore_containers='["istio-proxy"]' \
                     --reporter cli json:inspec.json junit:inspec-junit.xml
           '''
+        }
         }
         }
 
