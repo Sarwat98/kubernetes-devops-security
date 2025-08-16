@@ -127,8 +127,8 @@ pipeline {
 
                                 inspec exec k8s-deploy-audit -t local:// \
                                 --input ns=prod deploy_name=devsecops label_key=app label_val=devsecops \
-                                --input ignore_containers="[\\\"istio-proxy\\\"]" \
-                                --reporter cli json:inspec.json junit:inspec-junit.xml
+                                --input ignore_containers=istio-proxy \
+                                --reporter cli
                             '
                             '''
                 }
