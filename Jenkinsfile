@@ -10,6 +10,7 @@ pipeline {
         imageName      = "farisali07/numeric-service:${GIT_COMMIT}"
         applicationURL = "http://devsecops-demo-07.centralus.cloudapp.azure.com"
         applicationURI = "compare/99"
+        CHEF_LICENSE = 'accept-silent'      // harmless even though we use -t local://
     }
 
   stages {
@@ -187,24 +188,44 @@ pipeline {
                 }
             }
         }
-
-        stage('K8S Deployment -- PROD') {
+        stage('InSpec - K8s checks') {
             steps {
-                parallel(
-                    "Deployment": {
-                        withKubeConfig([credentialsId: 'kubeconfig']) {
-                            sh "sed -i 's#replace#${imageName}#g' k8s_PROD-deployment_service.yaml"
-                            sh "kubectl -n prod apply -f k8s_PROD-deployment_service.yaml"
-                        }
-                    },
-                    "Rollout Status": {
-                        withKubeConfig([credentialsId: 'kubeconfig']) {
-                            sh "bash k8s-PROD-deployment-rollout-status.sh"
-                        }
-                    }
-                )
-            }
+        // use read-only kubeconfig from Jenkins credentials
+        withCredentials([file(credentialsId: 'kubeconfig')]) {
+                sh '''
+                    set -e
+                    # Ensure inspec is available (install if missing)
+                    if ! command -v inspec >/dev/null 2>&1; then
+                    curl -sSL https://omnitruck.chef.io/install.sh | sudo bash -s -- -P inspec
+                    fi
+
+                    # run the profile (we use kubectl via -t local://)
+                    cd k8s-deploy-audit
+                    inspec exec . -t local:// \
+                    --input ns=prod deploy_name=devsecops label_key=app label_val=devsecops \
+                    --input ignore_containers='["istio-proxy"]' \
+                    --reporter cli json:inspec.json junit:inspec-junit.xml
+          '''
         }
+        }
+
+        // stage('K8S Deployment -- PROD') {
+        //     steps {
+        //         parallel(
+        //             "Deployment": {
+        //                 withKubeConfig([credentialsId: 'kubeconfig']) {
+        //                     sh "sed -i 's#replace#${imageName}#g' k8s_PROD-deployment_service.yaml"
+        //                     sh "kubectl -n prod apply -f k8s_PROD-deployment_service.yaml"
+        //                 }
+        //             },
+        //             "Rollout Status": {
+        //                 withKubeConfig([credentialsId: 'kubeconfig']) {
+        //                     sh "bash k8s-PROD-deployment-rollout-status.sh"
+        //                 }
+        //             }
+        //         )
+        //     }
+        // }
 
 
    }
