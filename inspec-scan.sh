@@ -1,22 +1,18 @@
 #!/usr/bin/env bash
 set -e
 
-# Add this to your script before the inspec command
-sudo chown -R jenkins:jenkins "$HOME/.chef"
-
-# Add to your script
-sudo mkdir -p /etc/chef/accepted_licenses
-sudo echo accept > /etc/chef/accepted_licenses/inspec
-
-# accept license for the jenkins user (no prompts)
-export CHEF_LICENSE=accept-silent
+# Accept in both locations
+export CHEF_LICENSE="accept-silent"
 mkdir -p "$HOME/.chef/accepted_licenses"
-echo accept > "$HOME/.chef/accepted_licenses/inspec"
+echo "accept" > "$HOME/.chef/accepted_licenses/inspec"
 
-# Print environment for debugging
-env | sort
+# Only try system location if we have sudo
+if sudo -n true 2>/dev/null; then
+  sudo mkdir -p /etc/chef/accepted_licenses
+  sudo bash -c 'echo "accept" > /etc/chef/accepted_licenses/inspec'
+fi
 
-# run your profile
+# Run your profile
 inspec exec k8s-deploy-audit -t local:// \
   --input ns=prod deploy_name=devsecops label_key=app label_val=devsecops \
   --input ignore_containers="istio-proxy" \
