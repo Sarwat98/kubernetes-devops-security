@@ -104,28 +104,29 @@ pipeline {
         }
 
         stage('InSpec - in Docker') {
-  steps {
-    withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
-      withEnv(['JAVA_TOOL_OPTIONS=', '_JAVA_OPTIONS=', 'MAVEN_OPTS=', 'JACOCO_AGENT=']) {
-        sh '''
-          set -euxo pipefail
-          docker run --rm \
-            -v "$PWD":/work \
-            -v "$KUBECONFIG":/root/.kube/config:ro \
-            -e KUBECONFIG=/root/.kube/config \
-            -e CHEF_LICENSE=accept-silent \
-            -e JAVA_TOOL_OPTIONS= -e _JAVA_OPTIONS= -e MAVEN_OPTS= -e JACOCO_AGENT= \
-            chef/inspec:5 sh -lc '
-              cd /work &&
-              inspec exec k8s-deploy-audit -t local:// \
-                --input ns=prod deploy_name=devsecops label_key=app label_val=devsecops \
-                --input ignore_containers="[\\\"istio-proxy\\\"]" \
-                --reporter cli
-            '
-        '''
-      }
-    }
-  }
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                withEnv(['JAVA_TOOL_OPTIONS=', '_JAVA_OPTIONS=', 'MAVEN_OPTS=', 'JACOCO_AGENT=']) {
+                    sh '''
+                    set -euxo pipefail
+                    docker run --rm \
+                        -v "$PWD":/work \
+                        -v "$KUBECONFIG":/root/.kube/config:ro \
+                        -e KUBECONFIG=/root/.kube/config \
+                        -e CHEF_LICENSE=accept-silent \
+                        -e JAVA_TOOL_OPTIONS= -e _JAVA_OPTIONS= -e MAVEN_OPTS= -e JACOCO_AGENT= \
+                        chef/inspec:5 sh -lc '
+                        cd /work &&
+                        inspec exec k8s-deploy-audit -t local:// \
+                            --input ns=prod deploy_name=devsecops label_key=app label_val=devsecops \
+                            --input ignore_containers="[\\\"istio-proxy\\\"]" \
+                            --reporter cli
+                        '
+                    '''
+                }
+                }
+            }
+        }
     
 
         stage('K8S Deployment -- DEV') {
