@@ -1,37 +1,37 @@
-apiVersion: networking.istio.io/v1beta1
-kind: Gateway
-metadata:
-  name: devsecops-gateway
-  namespace: prod
-spec:
-  selector:
-    istio: ingressgateway
-  servers:
-    - hosts:
-        - "*"
-      port:
-        name: http
-        number: 80
-        protocol: HTTP
----
-apiVersion: networking.istio.io/v1beta1
-kind: VirtualService
-metadata:
-  name: devsecops-numeric
-  namespace: prod
-spec:
-  gateways:
-    - devsecops-gateway
-  hosts:
-    - "*"
-  http:
-    - match:
-        - uri:
-            prefix: /increment
-        - uri:
-            exact: /
-      route:
-        - destination:
-            host: devsecops-svc
-            port:
-              number: 8080
+# apiVersion: networking.istio.io/v1beta1
+# kind: Gateway
+# metadata:
+#   name: devsecops-gateway
+#   namespace: prod
+# spec:
+#   selector:
+#     istio: ingressgateway
+#   servers:
+#     - hosts:
+#         - "*"
+#       port:
+#         name: http
+#         number: 80
+#         protocol: HTTP
+# ---
+# apiVersion: networking.istio.io/v1beta1
+# kind: VirtualService
+# metadata:
+#   name: devsecops-numeric
+#   namespace: prod
+# spec:
+#   gateways:
+#     - devsecops-gateway
+#   hosts:
+#     - "*"
+#   http:
+#     - match:
+#         - uri:
+#             prefix: /increment
+#         - uri:
+#             exact: /
+#       route:
+#         - destination:
+#             host: devsecops-svc
+#             port:
+#               number: 8080
