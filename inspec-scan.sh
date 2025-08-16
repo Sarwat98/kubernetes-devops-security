@@ -23,7 +23,7 @@ ls -la "$JENKINS_HOME/.chef/accepted_licenses/" 2>/dev/null || echo "No user lic
 ls -la "/etc/chef/accepted_licenses/" 2>/dev/null || echo "No system license found"
 
 # 6. Run InSpec with all license acceptance methods
-inspec exec k8s-deploy-audit -t local:// \
+sudo inspec exec k8s-deploy-audit -t local:// \
   --input ns=prod deploy_name=devsecops label_key=app label_val=devsecops \
   --input ignore_containers="istio-proxy" \
   --chef-license accept-silent \
