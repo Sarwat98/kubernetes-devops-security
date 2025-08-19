@@ -103,7 +103,7 @@ pipeline {
             }
         }
 
-        stage('InSpec - in Docker') {
+        stage('InSpec') {
             steps {
                 withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
                 withEnv(['JAVA_TOOL_OPTIONS=', '_JAVA_OPTIONS=', 'MAVEN_OPTS=', 'JACOCO_AGENT=']) {
@@ -146,7 +146,7 @@ pipeline {
                 }
             }
         }
-
+ 
         stage('OWASP ZAP Scan - DAST') {
             steps {
                 withKubeConfig([credentialsId: 'kubeconfig']) {
@@ -233,8 +233,8 @@ pipeline {
                         publishHTML([allowMissing: false, alwaysLinkToLastBuild: true, icon: '', keepAll: true, reportDir: 'owasp-zap-report', reportFiles: 'zap_report.html', reportName: 'OWASP ZAP HTML Report', reportTitles: 'OWASP ZAP HTML Report', useWrapperFileDirectly: true])
                         // sendNotification(currentBuild.currentResult ?: 'SUCCESS')
                         sendNotification currentBuild.result 
-                        junit 'k8s-deploy-audit/inspec-junit.xml'
-                        archiveArtifacts artifacts: 'k8s-deploy-audit/inspec.json', fingerprint: true
+                        // junit 'k8s-deploy-audit/inspec-junit.xml'
+                        // archiveArtifacts artifacts: 'k8s-deploy-audit/inspec.json', fingerprint: true
             } 
             success {
                 echo 'Pipeline completed successfully!'
