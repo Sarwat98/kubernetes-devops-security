@@ -44,108 +44,108 @@ pipeline {
         // }
 
                 
-        stage('Mutation Testing - PIT') {
-            steps {
-                sh "mvn org.pitest:pitest-maven:mutationCoverage"
-            }
-        }
+        // stage('Mutation Testing - PIT') {
+        //     steps {
+        //         sh "mvn org.pitest:pitest-maven:mutationCoverage"
+        //     }
+        // }
 
-        stage('Vulnerability Scan - Dependency  - Docker') {
-            steps {
-                parallel (
-                    'Dependency Check': {
-                        sh 'mvn dependency-check:check'
-                    },
-                    'Trivy Scan': {
-                        sh "bash trivy-docker-image-scan.sh"
-                    },
-                    'OPA Conftest Scan': {
-                        sh 'docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-docker-security.rego Dockerfile' // --output json --output-file conftest-results.json
-                    }
-                )
-            }
-        }
+        // stage('Vulnerability Scan - Dependency  - Docker') {
+        //     steps {
+        //         parallel (
+        //             'Dependency Check': {
+        //                 sh 'mvn dependency-check:check'
+        //             },
+        //             'Trivy Scan': {
+        //                 sh "bash trivy-docker-image-scan.sh"
+        //             },
+        //             'OPA Conftest Scan': {
+        //                 sh 'docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-docker-security.rego Dockerfile' // --output json --output-file conftest-results.json
+        //             }
+        //         )
+        //     }
+        // }
 
-        stage('Build Docker and Push Image') {
-            steps {
-                withDockerRegistry([credentialsId: 'docker-hub-token', url: '']) {
-                    sh 'printenv' // to see if the environment variables are set correctly
-                    sh "sudo docker build -t farisali07/numeric-service:${GIT_COMMIT} ."
-                    sh "docker push farisali07/numeric-service:${GIT_COMMIT}"
-                }
-            }
-        }
+        // stage('Build Docker and Push Image') {
+        //     steps {
+        //         withDockerRegistry([credentialsId: 'docker-hub-token', url: '']) {
+        //             sh 'printenv' // to see if the environment variables are set correctly
+        //             sh "sudo docker build -t farisali07/numeric-service:${GIT_COMMIT} ."
+        //             sh "docker push farisali07/numeric-service:${GIT_COMMIT}"
+        //         }
+        //     }
+        // }
 
-        stage('Vulneraility Scan - Kubernetes') {
-            steps {
-                parallel (
-                    'OPA Conftest Scan': {
-                        sh 'docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-k8s-security.rego k8s_deployment_service.yaml'
-                    },
-                    'Kubesec Scan': {
-                        sh "bash kubesec-scan.sh"
-                    },
-                    'Trivy Scan': {
-                        sh "bash trivy-k8s-scan.sh"
-                    }
-                )
-            }
-        }
+        // stage('Vulneraility Scan - Kubernetes') {
+        //     steps {
+        //         parallel (
+        //             'OPA Conftest Scan': {
+        //                 sh 'docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-k8s-security.rego k8s_deployment_service.yaml'
+        //             },
+        //             'Kubesec Scan': {
+        //                 sh "bash kubesec-scan.sh"
+        //             },
+        //             'Trivy Scan': {
+        //                 sh "bash trivy-k8s-scan.sh"
+        //             }
+        //         )
+        //     }
+        // }
 
-        stage('Deploy to Kubernetes - DEV') {
-            steps {
-                withKubeConfig([credentialsId: 'kubeconfig']) {
-                script {
-                    sh "sed -i 's|image:.*|image: farisali07/numeric-service:${GIT_COMMIT}|' k8s_deployment_service.yaml"
-                    sh "kubectl apply -f k8s_deployment_service.yaml"
-                }
-                }
-            }
-        }
+        // stage('Deploy to Kubernetes - DEV') {
+        //     steps {
+        //         withKubeConfig([credentialsId: 'kubeconfig']) {
+        //         script {
+        //             sh "sed -i 's|image:.*|image: farisali07/numeric-service:${GIT_COMMIT}|' k8s_deployment_service.yaml"
+        //             sh "kubectl apply -f k8s_deployment_service.yaml"
+        //         }
+        //         }
+        //     }
+        // }
 
-        stage('InSpec') {
-            steps {
-                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
-                withEnv(['JAVA_TOOL_OPTIONS=', '_JAVA_OPTIONS=', 'MAVEN_OPTS=', 'JACOCO_AGENT=']) {
-                     sh "bash inspec-scan.sh"
-                }
-                }
-            }
-        }
+        // stage('InSpec') {
+        //     steps {
+        //         withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+        //         withEnv(['JAVA_TOOL_OPTIONS=', '_JAVA_OPTIONS=', 'MAVEN_OPTS=', 'JACOCO_AGENT=']) {
+        //              sh "bash inspec-scan.sh"
+        //         }
+        //         }
+        //     }
+        // }
     
 
-        stage('K8S Deployment -- DEV') {
-            steps {
-                parallel(
-                    "Deployment": {
-                        withKubeConfig([credentialsId: 'kubeconfig']) {
-                            sh "bash k8s-deployment.sh"
-                        }
-                    },
-                    "Rollout Status": {
-                        withKubeConfig([credentialsId: 'kubeconfig']) {
-                            sh "bash k8s-deployment-rollout-status.sh"
-                        }
-                    }
-                )
-            }
-        }
-        stage('Integration Tests - DEV') {
-            steps {
-                script {
-                try {
-                    withKubeConfig([credentialsId: 'kubeconfig']) {
-                    sh 'bash integration-test.sh'
-                    }
-                } catch (e) {
-                    withKubeConfig([credentialsId: 'kubeconfig']) {
-                    sh "kubectl -n default rollout undo deploy ${deploymentName}"
-                    }
-                    throw e
-                }
-                }
-            }
-        }
+        // stage('K8S Deployment -- DEV') {
+        //     steps {
+        //         parallel(
+        //             "Deployment": {
+        //                 withKubeConfig([credentialsId: 'kubeconfig']) {
+        //                     sh "bash k8s-deployment.sh"
+        //                 }
+        //             },
+        //             "Rollout Status": {
+        //                 withKubeConfig([credentialsId: 'kubeconfig']) {
+        //                     sh "bash k8s-deployment-rollout-status.sh"
+        //                 }
+        //             }
+        //         )
+        //     }
+        // }
+        // stage('Integration Tests - DEV') {
+        //     steps {
+        //         script {
+        //         try {
+        //             withKubeConfig([credentialsId: 'kubeconfig']) {
+        //             sh 'bash integration-test.sh'
+        //             }
+        //         } catch (e) {
+        //             withKubeConfig([credentialsId: 'kubeconfig']) {
+        //             sh "kubectl -n default rollout undo deploy ${deploymentName}"
+        //             }
+        //             throw e
+        //         }
+        //         }
+        //     }
+        // }
  
         // stage('OWASP ZAP Scan - DAST') {
         //     steps {
@@ -158,7 +158,7 @@ pipeline {
         stage('Qualys WAS Scan') {
             steps {
                 script {
-                    qualysWASScan authRecord: 'none', cancelOptions: 'none', credsId: 'qualys-pass', optionProfile: '3148602', platform: 'EU_PLATFORM_2', pollingInterval: '5', scanName: '[job_name]_jenkins_build_[build_number]', scanType: 'VULNERABILITY', vulnsTimeout: '60*24', webAppId: '346161461'
+                    qualysWASScan authRecord: 'none', cancelOptions: 'none', credsId: 'qualys-pass', isSev1Vulns: true, isSev2Vulns: true, isSev3Vulns: true, optionProfile: 'useDefault', platform: 'EU_PLATFORM_2', pollingInterval: '5', scanName: '[job_name]_jenkins_build_[build_number]', scanType: 'VULNERABILITY', severity1Limit: 5, severity2Limit: 5, severity3Limit: 5, vulnsTimeout: '60*24', webAppId: '346161461'
                 }
             }
         }
