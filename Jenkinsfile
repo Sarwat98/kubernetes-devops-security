@@ -154,7 +154,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Qualys WAS Scan') {
             steps {
                 script {
@@ -176,6 +176,7 @@ pipeline {
                         vulnsTimeout: '60*24',
                         webAppId: '346161461'
                     )
+                }
             }
         }
 
