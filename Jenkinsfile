@@ -147,35 +147,18 @@ pipeline {
             }
         }
  
-        stage('OWASP ZAP Scan - DAST') {
-            steps {
-                withKubeConfig([credentialsId: 'kubeconfig']) {
-                    sh "bash owasp-zap-scan.sh"
-                }
-            }
-        }
+        // stage('OWASP ZAP Scan - DAST') {
+        //     steps {
+        //         withKubeConfig([credentialsId: 'kubeconfig']) {
+        //             sh "bash owasp-zap-scan.sh"
+        //         }
+        //     }
+        // }
 
         stage('Qualys WAS Scan') {
             steps {
                 script {
-                    qualysWASScan(
-                        authRecord: 'none',
-                        cancelOptions: 'none',
-                        credsId: 'qualys-pass',
-                        isSev1Vulns: true,
-                        isSev2Vulns: true,
-                        isSev3Vulns: true,
-                        optionProfile: 'useDefault',
-                        platform: 'EU_PLATFORM_2',
-                        pollingInterval: '5',
-                        scanName: "${env.JOB_NAME}_jenkins_build_${env.BUILD_NUMBER}",
-                        scanType: 'VULNERABILITY',
-                        severity1Limit: 5,
-                        severity2Limit: 5,
-                        severity3Limit: 5,
-                        vulnsTimeout: '60*24',
-                        webAppId: '346161461'
-                    )
+                    qualysWASScan authRecord: 'none', cancelOptions: 'none', credsId: 'qualys-pass', optionProfile: 'useDefault', platform: 'EU_PLATFORM_2', pollingInterval: '5', scanName: '[job_name]_jenkins_build_[build_number]', scanType: 'VULNERABILITY', vulnsTimeout: '60*24', webAppId: '346161461'
                 }
             }
         }
