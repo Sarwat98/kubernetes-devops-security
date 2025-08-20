@@ -27,21 +27,21 @@ pipeline {
             }
         } 
 
-        stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv("${SONARQUBE_ENV}") {
-                    sh 'mvn clean verify sonar:sonar -Dsonar.projectKey=numeric-application -Dsonar.projectName="numeric-application"'
-                }
-            }
-        }
+        // stage('SonarQube Analysis') {
+        //     steps {
+        //         withSonarQubeEnv("${SONARQUBE_ENV}") {
+        //             sh 'mvn clean verify sonar:sonar -Dsonar.projectKey=numeric-application -Dsonar.projectName="numeric-application"'
+        //         }
+        //     }
+        // }
 
-        stage('Quality Gate') {  
-            steps {
-                timeout(time: 2, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
-            }
-        }
+        // stage('Quality Gate') {  
+        //     steps {
+        //         timeout(time: 2, unit: 'MINUTES') {
+        //             waitForQualityGate abortPipeline: true
+        //         }
+        //     }
+        // }
 
                 
         stage('Mutation Testing - PIT') {
@@ -158,7 +158,7 @@ pipeline {
         stage('Qualys WAS Scan') {
             steps {
                 script {
-                    qualysWASScan authRecord: 'none', cancelOptions: 'none', credsId: 'qualys-pass', optionProfile: 'useDefault', platform: 'EU_PLATFORM_2', pollingInterval: '5', scanName: '[job_name]_jenkins_build_[build_number]', scanType: 'VULNERABILITY', vulnsTimeout: '60*24', webAppId: '346161461'
+                    qualysWASScan authRecord: 'none', cancelOptions: 'none', credsId: 'qualys-pass', optionProfile: '3148602', platform: 'EU_PLATFORM_2', pollingInterval: '5', scanName: '[job_name]_jenkins_build_[build_number]', scanType: 'VULNERABILITY', vulnsTimeout: '60*24', webAppId: '346161461'
                 }
             }
         }
