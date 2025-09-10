@@ -52,12 +52,17 @@ pipeline {
                 }
             }
         }
-        
         stage('OWASP Dependency Check') {
             steps {
                 script {
                     if (fileExists('pom.xml')) {
-                        sh 'mvn org.owasp:dependency-check-maven:check'
+                        withEnv(["NVD_API_KEY=${env.NVD_API_KEY}"]) {
+                            sh '''
+                                mvn org.owasp:dependency-check-maven:12.1.0:check \
+                                    -Dnvd.api.key=${NVD_API_KEY} \
+                                    -Dnvd.api.delay=6000
+                            '''
+                        }
                     }
                 }
             }
@@ -78,6 +83,7 @@ pipeline {
                 }
             }
         }
+
         
         stage('SonarQube Analysis') {
             steps {
