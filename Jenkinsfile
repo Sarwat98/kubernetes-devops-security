@@ -88,26 +88,12 @@ pipeline {
         
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube') {
-                    script {
-                        if (fileExists('pom.xml')) {
-                            sh '''
-                                mvn sonar:sonar \
-                                    -Dsonar.projectKey=kubernetes-devops-security \
-                                    -Dsonar.projectName="Kubernetes DevOps Security"
-                            '''
-                        } else {
-                            sh '''
-                                sonar-scanner \
-                                    -Dsonar.projectKey=kubernetes-devops-security \
-                                    -Dsonar.projectName="Kubernetes DevOps Security" \
-                                    -Dsonar.sources=.
-                            '''
-                        }
-                    }
+                withSonarQubeEnv("${SONARQUBE_ENV}") {
+                    sh 'mvn clean verify sonar:sonar -Dsonar.projectKey=numeric-application -Dsonar.projectName="numeric-application"'
                 }
             }
         }
+
         
         stage('Quality Gate') {
             steps {
