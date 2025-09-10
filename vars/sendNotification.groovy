@@ -1,16 +1,16 @@
 def call(String buildStatus = 'STARTED') {
     buildStatus = buildStatus ?: 'SUCCESS'
+    
     def color
-
     if (buildStatus == 'SUCCESS') {
-        color = '#47ec05'
+        color = '#00FF00'
     } else if (buildStatus == 'UNSTABLE') {
-        color = '#d5ee0d'
+        color = '#FFFF00'
     } else {
-        color = '#ec2805'
+        color = '#FF0000'
     }
-
-    def msg = "${buildStatus}: ${env.JOB_NAME} #${env.BUILD_NUMBER}:\n${env.BUILD_URL}"
-
+    
+    def msg = "${buildStatus}: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})"
+    
     slackSend(color: color, message: msg)
 }
