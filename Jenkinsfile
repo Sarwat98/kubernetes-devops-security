@@ -143,13 +143,65 @@ pipeline {
         }
         
         stage('Container Security Scan') {
-            when {
-                expression { fileExists('Dockerfile') }
+            parallel {
+                stage('Trivy Scan') {
+                    steps {
+                        script {
+                            def exitCode = sh(
+                                script: 'trivy image --exit-code 0 --severity HIGH,CRITICAL ${DOCKER_IMAGE}:${BUILD_NUMBER}',
+                                returnStatus: true
+                            )
+                            
+                            if (exitCode != 0) {
+                                echo "⚠️ High/Critical vulnerabilities found in container"
+                                currentBuild.result = 'UNSTABLE'
+                            }
+                        }
+                    }
+                }
+                
+                stage('Grype Scan') {
+                    steps {
+                        script {
+                            def exitCode = sh(
+                                script: 'grype ${DOCKER_IMAGE}:${BUILD_NUMBER} --fail-on critical',
+                                returnStatus: true
+                            )
+                            
+                            if (exitCode != 0) {
+                                echo "🔥 CRITICAL vulnerabilities found - requires immediate attention"
+                                echo "📊 Review full report for remediation steps"
+                                currentBuild.result = 'UNSTABLE'
+                                
+                                // Generate detailed report
+                                sh 'grype ${DOCKER_IMAGE}:${BUILD_NUMBER} -o json > grype-report.json'
+                                sh 'grype ${DOCKER_IMAGE}:${BUILD_NUMBER} -o table > grype-report.txt'
+                                
+                                archiveArtifacts artifacts: 'grype-report.*', fingerprint: true
+                            }
+                        }
+                    }
+                }
             }
-            steps {
-                script {
-                    sh "trivy image --exit-code 0 --severity HIGH,CRITICAL ${DOCKER_IMAGE}:${BUILD_NUMBER}"
-                    sh "grype ${DOCKER_IMAGE}:${BUILD_NUMBER} --fail-on high"
+            post {
+                always {
+                    script {
+                        // Send security alert for critical findings
+                        if (currentBuild.result == 'UNSTABLE') {
+                            echo """
+                            🚨 SECURITY ALERT 🚨
+                            Critical vulnerabilities detected in build ${env.BUILD_NUMBER}
+                            
+                            Priority Actions Required:
+                            1. Update Spring Boot to 2.7.18+
+                            2. Update Spring Security to 5.8.13+  
+                            3. Update Tomcat to 9.0.99+
+                            4. Review complete vulnerability report
+                            
+                            Build marked as UNSTABLE - manual review required before deployment.
+                            """
+                        }
+                    }
                 }
             }
         }
