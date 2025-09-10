@@ -43,9 +43,9 @@ metadata:
   name: devsecops-svc
 spec:
   ports:
-  - port: 8080
+  - port: 9090
     protocol: TCP
-    targetPort: 8080
+    targetPort: 9090
     nodePort: 32456
   selector:
     app: devsecops
