@@ -19,20 +19,21 @@ spec:
       containers:
       - image: replace
         name: devsecops-container
-        volumeMounts:
-        - mountPath: /tmp
-          name: cache-volume
         securityContext:
+          runAsNonRoot: true
+          runAsUser: 100
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
           capabilities:
             drop:
-            - ALL
-          runAsGroup: 1000
-          runAsNonRoot: true
-          runAsUser: 1000
-          readOnlyRootFilesystem: true
-      volumes:
-      - name: cache-volume
-        emptyDir: {}
+              - ALL
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
 ---
 apiVersion: v1
 kind: Service
@@ -45,7 +46,7 @@ spec:
   - port: 8080
     protocol: TCP
     targetPort: 8080
+    nodePort: 32456
   selector:
     app: devsecops
   type: NodePort
-  
