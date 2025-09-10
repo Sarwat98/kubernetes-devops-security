@@ -1,13 +1,10 @@
 #!/bin/bash
-# CIS etcd Benchmark Check (2.2)
-
-# Run kube-bench for etcd and parse JSON output
-total_fail=$(kube-bench run --targets etcd --version 1.15 --check 2.2 --json | jq -r '.Totals.total_fail')
-
-if [[ "$total_fail" -ne 0 ]]; then
-    echo "CIS Benchmark Failed ETCD for check 2.2 (Failures: $total_fail)"
-    exit 1
+# CIS Benchmark scripts - adjust based on your K8s setup
+total_fail=$(kube-bench run --targets master --json | jq .[].total_fail)
+if [[ "$total_fail" -ne 0 ]];
+then
+    echo "CIS Benchmark Failed. Master node failed: $total_fail tests"
+    exit 1;
 else
-    echo "CIS Benchmark Passed ETCD for 2.2"
-    exit 0
-fi
+    echo "CIS Benchmark Passed for Master node"
+fi;
