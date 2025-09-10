@@ -24,7 +24,14 @@ pipeline {
             steps {
                 script {
                     if (fileExists('pom.xml')) {
-                        sh 'mvn clean compile'
+                        sh '''
+                            echo "Building Maven project..."
+                            mvn clean package -DskipTests
+                            
+                            # Verify JAR was created
+                            ls -la target/
+                            ls -la target/*.jar
+                        '''
                     } else if (fileExists('package.json')) {
                         sh 'npm install'
                         sh 'npm run build'
@@ -32,6 +39,7 @@ pipeline {
                 }
             }
         }
+        
         
         stage('Unit Tests') {
             steps {
@@ -122,6 +130,11 @@ pipeline {
             steps {
                 script {
                     if (fileExists('Dockerfile')) {
+                        // Verify JAR exists before building
+                        if (fileExists('pom.xml')) {
+                            sh 'ls -la target/*.jar'
+                        }
+                        
                         def dockerImage = docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}")
                         env.DOCKER_IMAGE_TAG = "${BUILD_NUMBER}"
                     }
