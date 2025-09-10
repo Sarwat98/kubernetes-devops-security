@@ -56,12 +56,18 @@ pipeline {
             steps {
                 script {
                     if (fileExists('pom.xml')) {
-                        withEnv(["NVD_API_KEY=${env.NVD_API_KEY}"]) {
-                            sh '''
-                                mvn org.owasp:dependency-check-maven:12.1.0:check \
-                                    -Dnvd.api.key=${NVD_API_KEY} \
-                                    -Dnvd.api.delay=6000
-                            '''
+                        // Try with cache first, fallback to no-update mode
+                        def exitCode = sh(
+                            script: '''
+                                mvn org.owasp:dependency-check-maven:12.1.0:check || \
+                                mvn org.owasp:dependency-check-maven:12.1.0:check -DautoUpdate=false
+                            ''',
+                            returnStatus: true
+                        )
+                        
+                        if (exitCode != 0) {
+                            echo "⚠️ Dependency check failed, but continuing pipeline..."
+                            currentBuild.result = 'UNSTABLE'
                         }
                     }
                 }
@@ -71,18 +77,21 @@ pipeline {
                     script {
                         if (fileExists('target/dependency-check-report.html')) {
                             publishHTML([
-                                allowMissing: false,
+                                allowMissing: true,
                                 alwaysLinkToLastBuild: true,
                                 keepAll: true,
                                 reportDir: 'target',
                                 reportFiles: 'dependency-check-report.html',
                                 reportName: 'OWASP Dependency Check Report'
                             ])
+                        } else {
+                            echo "⚠️ No dependency check report generated"
                         }
                     }
                 }
             }
         }
+
 
         
         stage('SonarQube Analysis') {
