@@ -102,8 +102,8 @@ pipeline {
             steps {
                 withDockerRegistry([credentialsId: 'docker-registry-credentials', url: '']) {
                     sh 'printenv' // to see if the environment variables are set correctly
-                    sh "docker build -t farisali07/numeric-service:${GIT_COMMIT} ."
-                    sh "docker push farisali07/numeric-service:${GIT_COMMIT}"
+                    sh "docker build -t sawat98/task1:${GIT_COMMIT} ."
+                    sh "docker push sawat98/task1:${GIT_COMMIT}"
                 }
             }
         }
