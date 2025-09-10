@@ -1,19 +1,19 @@
-package main
+package kubernetes.security
 
-# Fail if a Service is not NodePort (same logic you had)
-deny contains msg if {
-  input.kind == "Service"
-  not input.spec.type == "NodePort"
-  msg := "Service type should be NodePort"
+deny[msg] {
+    input.kind == "Deployment"
+    input.spec.template.spec.containers[_].securityContext.runAsUser == 0
+    msg = "Container should not run as root user"
 }
 
-# Fail if any Deployment container does not set runAsNonRoot=true
-deny contains msg if {
-  input.kind == "Deployment"
-  some i
-  containers := input.spec.template.spec.containers
-  # if securityContext/runAsNonRoot is missing or not true -> fail
-  not containers[i].securityContext.runAsNonRoot == true
-  cname := containers[i].name
-  msg := sprintf("Container %q must not run as root: set securityContext.runAsNonRoot=true", [cname])
+deny[msg] {
+    input.kind == "Deployment"
+    not input.spec.template.spec.containers[_].securityContext.readOnlyRootFilesystem
+    msg = "Container should have read-only root filesystem"
+}
+
+deny[msg] {
+    input.kind == "Deployment"
+    input.spec.template.spec.containers[_].securityContext.privileged
+    msg = "Privileged containers are not allowed"
 }
