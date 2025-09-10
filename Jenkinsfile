@@ -6,6 +6,7 @@ pipeline {
         DOCKER_IMAGE = 'kubernetes-devops-security'
         JAVA_HOME = '/usr/lib/jvm/java-21-openjdk'
         PATH = "${JAVA_HOME}/bin:${PATH}"
+        NVD_API_KEY = credentials('nvd-api-key')
     }
     
     stages {
@@ -56,19 +57,11 @@ pipeline {
             steps {
                 script {
                     if (fileExists('pom.xml')) {
-                        // Try with cache first, fallback to no-update mode
-                        def exitCode = sh(
-                            script: '''
-                                mvn org.owasp:dependency-check-maven:12.1.0:check || \
-                                mvn org.owasp:dependency-check-maven:12.1.0:check -DautoUpdate=false
-                            ''',
-                            returnStatus: true
-                        )
-                        
-                        if (exitCode != 0) {
-                            echo "⚠️ Dependency check failed, but continuing pipeline..."
-                            currentBuild.result = 'UNSTABLE'
-                        }
+                        sh '''
+                            mvn org.owasp:dependency-check-maven:12.1.0:check \
+                                -Dnvd.api.key=${NVD_API_KEY} \
+                                -Dnvd.api.delay=6000
+                        '''
                     }
                 }
             }
@@ -77,20 +70,19 @@ pipeline {
                     script {
                         if (fileExists('target/dependency-check-report.html')) {
                             publishHTML([
-                                allowMissing: true,
+                                allowMissing: false,
                                 alwaysLinkToLastBuild: true,
                                 keepAll: true,
                                 reportDir: 'target',
                                 reportFiles: 'dependency-check-report.html',
                                 reportName: 'OWASP Dependency Check Report'
                             ])
-                        } else {
-                            echo "⚠️ No dependency check report generated"
                         }
                     }
                 }
             }
         }
+
 
 
         
