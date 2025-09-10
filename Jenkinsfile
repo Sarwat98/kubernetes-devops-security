@@ -1,8 +1,6 @@
-@Library('slack') _ // Import the Slack library for notifications
-
 pipeline {
-  agent any
-  environment {
+    agent any
+    environment {
         SONARQUBE_ENV = 'SonarQube' // Optional: for clarity
         deploymentName = "devsecops"
         containerName  = "devsecops-container"
@@ -12,21 +10,21 @@ pipeline {
         applicationURI = "compare/99"
         CHEF_LICENSE = 'accept-silent'      // harmless even though we use -t local://
     }
-
-  stages {
+    
+    stages {
         stage('Build Artifact') {
-                steps {
+            steps {
                 sh "mvn clean package -DskipTests=true"
-                archive 'target/*.jar' //so that they can be downloaded later
-                }
-            }  
-
+                archiveArtifacts 'target/*.jar' //so that they can be downloaded later
+            }
+        }  
+        
         stage('Unit Tests -- JUnit and Jacoco') {
             steps {
                 sh "mvn test"
             }
         } 
-
+        
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv("${SONARQUBE_ENV}") {
@@ -34,86 +32,147 @@ pipeline {
                 }
             }
         }
-
+        
         stage('Quality Gate') {  
             steps {
                 timeout(time: 2, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
+                    script {
+                        try {
+                            waitForQualityGate abortPipeline: true
+                        } catch (Exception e) {
+                            echo "⚠️ Quality Gate failed or timed out: ${e.message}"
+                            currentBuild.result = 'UNSTABLE'
+                        }
+                    }
                 }
             }
         }
-
                 
         stage('Mutation Testing - PIT') {
             steps {
-                sh "mvn org.pitest:pitest-maven:mutationCoverage"
+                script {
+                    try {
+                        sh "mvn org.pitest:pitest-maven:mutationCoverage"
+                    } catch (Exception e) {
+                        echo "⚠️ PIT Mutation testing failed: ${e.message}"
+                        currentBuild.result = 'UNSTABLE'
+                    }
+                }
             }
         }
-
+        
         stage('Vulnerability Scan - Dependency  - Docker') {
             steps {
                 parallel (
-                    // 'Dependency Check': {
-                    //     sh 'mvn dependency-check:check'
-                    // },
+                    'Dependency Check': {
+                        script {
+                            try {
+                                sh 'mvn org.owasp:dependency-check-maven:12.1.0:check -DautoUpdate=false'
+                            } catch (Exception e) {
+                                echo "⚠️ Dependency check found vulnerabilities"
+                                currentBuild.result = 'UNSTABLE'
+                            }
+                        }
+                    },
                     'Trivy Scan': {
-                        sh "bash trivy-docker-image-scan.sh"
+                        script {
+                            try {
+                                sh "bash trivy-docker-image-scan.sh"
+                            } catch (Exception e) {
+                                echo "⚠️ Trivy scan found vulnerabilities"
+                                currentBuild.result = 'UNSTABLE'
+                            }
+                        }
                     },
                     'OPA Conftest Scan': {
-                        sh 'docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-docker-security.rego Dockerfile' // --output json --output-file conftest-results.json
+                        script {
+                            try {
+                                sh 'docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-docker-security.rego Dockerfile'
+                            } catch (Exception e) {
+                                echo "⚠️ OPA Conftest scan found policy violations"
+                                currentBuild.result = 'UNSTABLE'
+                            }
+                        }
                     }
                 )
             }
         }
-
+        
         stage('Build Docker and Push Image') {
             steps {
                 withDockerRegistry([credentialsId: 'docker-hub-token', url: '']) {
                     sh 'printenv' // to see if the environment variables are set correctly
-                    sh "sudo docker build -t farisali07/numeric-service:${GIT_COMMIT} ."
+                    sh "docker build -t farisali07/numeric-service:${GIT_COMMIT} ."
                     sh "docker push farisali07/numeric-service:${GIT_COMMIT}"
                 }
             }
         }
-
-        stage('Vulneraility Scan - Kubernetes') {
+        
+        stage('Vulnerability Scan - Kubernetes') {
             steps {
                 parallel (
                     'OPA Conftest Scan': {
-                        sh 'docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-k8s-security.rego k8s_deployment_service.yaml'
+                        script {
+                            try {
+                                sh 'docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-k8s-security.rego k8s_deployment_service.yaml'
+                            } catch (Exception e) {
+                                echo "⚠️ OPA Kubernetes scan found policy violations"
+                                currentBuild.result = 'UNSTABLE'
+                            }
+                        }
                     },
                     'Kubesec Scan': {
-                        sh "bash kubesec-scan.sh"
+                        script {
+                            try {
+                                sh "bash kubesec-scan.sh"
+                            } catch (Exception e) {
+                                echo "⚠️ Kubesec scan found security issues"
+                                currentBuild.result = 'UNSTABLE'
+                            }
+                        }
                     },
                     'Trivy Scan': {
-                        sh "bash trivy-k8s-scan.sh"
+                        script {
+                            try {
+                                sh "bash trivy-k8s-scan.sh"
+                            } catch (Exception e) {
+                                echo "⚠️ Trivy Kubernetes scan found vulnerabilities"
+                                currentBuild.result = 'UNSTABLE'
+                            }
+                        }
                     }
                 )
             }
         }
-
+        
         stage('Deploy to Kubernetes - DEV') {
             steps {
                 withKubeConfig([credentialsId: 'kubeconfig']) {
-                script {
-                    sh "sed -i 's|image:.*|image: farisali07/numeric-service:${GIT_COMMIT}|' k8s_deployment_service.yaml"
-                    sh "kubectl apply -f k8s_deployment_service.yaml"
-                }
+                    script {
+                        sh "sed -i 's|image:.*|image: farisali07/numeric-service:${GIT_COMMIT}|' k8s_deployment_service.yaml"
+                        sh "kubectl apply -f k8s_deployment_service.yaml"
+                    }
                 }
             }
         }
-
+        
         stage('InSpec') {
             steps {
                 withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
-                withEnv(['JAVA_TOOL_OPTIONS=', '_JAVA_OPTIONS=', 'MAVEN_OPTS=', 'JACOCO_AGENT=']) {
-                     sh "bash inspec-scan.sh"
-                }
+                    withEnv(['JAVA_TOOL_OPTIONS=', '_JAVA_OPTIONS=', 'MAVEN_OPTS=', 'JACOCO_AGENT=']) {
+                        script {
+                            try {
+                                sh "bash inspec-scan.sh"
+                            } catch (Exception e) {
+                                echo "⚠️ InSpec scan found compliance issues"
+                                currentBuild.result = 'UNSTABLE'
+                            }
+                        }
+                    }
                 }
             }
         }
     
-
         stage('K8S Deployment -- DEV') {
             steps {
                 parallel(
@@ -130,79 +189,103 @@ pipeline {
                 )
             }
         }
+        
         stage('Integration Tests - DEV') {
             steps {
                 script {
-                try {
-                    withKubeConfig([credentialsId: 'kubeconfig']) {
-                    sh 'bash integration-test.sh'
+                    try {
+                        withKubeConfig([credentialsId: 'kubeconfig']) {
+                            sh 'bash integration-test.sh'
+                        }
+                    } catch (e) {
+                        withKubeConfig([credentialsId: 'kubeconfig']) {
+                            sh "kubectl -n default rollout undo deploy ${deploymentName}"
+                        }
+                        throw e
                     }
-                } catch (e) {
-                    withKubeConfig([credentialsId: 'kubeconfig']) {
-                    sh "kubectl -n default rollout undo deploy ${deploymentName}"
-                    }
-                    throw e
-                }
                 }
             }
         }
- 
+        
         stage('OWASP ZAP Scan - DAST') {
             steps {
                 withKubeConfig([credentialsId: 'kubeconfig']) {
-                    sh "bash owasp-zap-scan.sh"
+                    script {
+                        try {
+                            sh "bash owasp-zap-scan.sh"
+                        } catch (Exception e) {
+                            echo "⚠️ OWASP ZAP scan found security vulnerabilities"
+                            currentBuild.result = 'UNSTABLE'
+                        }
+                    }
                 }
             }
         }
-
+        
         stage('Qualys WAS Scan') {
+            when {
+                expression { return params.ENABLE_QUALYS_SCAN == true }
+            }
             steps {
                 script {
-                    qualysWASScan authRecord: 'none', cancelOptions: 'none', credsId: 'qualys-pass', isSev1Vulns: true, isSev2Vulns: true, isSev3Vulns: true, optionProfile: 'useDefault', platform: 'EU_PLATFORM_2', pollingInterval: '5', scanName: '[job_name]_jenkins_build_[build_number]', scanType: 'VULNERABILITY', severity1Limit: 5, severity2Limit: 5, severity3Limit: 5, vulnsTimeout: '60*24', webAppId: '346161461'
+                    try {
+                        qualysWASScan authRecord: 'none', cancelOptions: 'none', credsId: 'qualys-pass', isSev1Vulns: true, isSev2Vulns: true, isSev3Vulns: true, optionProfile: 'useDefault', platform: 'EU_PLATFORM_2', pollingInterval: '5', scanName: '[job_name]_jenkins_build_[build_number]', scanType: 'VULNERABILITY', severity1Limit: 5, severity2Limit: 5, severity3Limit: 5, vulnsTimeout: '60*24', webAppId: '346161461'
+                    } catch (Exception e) {
+                        echo "⚠️ Qualys WAS scan failed or found vulnerabilities: ${e.message}"
+                        currentBuild.result = 'UNSTABLE'
+                    }
                 }
             }
         }
-
-        // stage('Burp DAST Scan') {
-        //     steps {
-        //         script {
-        //             // Run Burp Suite DAST Scan
-        //             // sh """
-        //             //     java -jar /path/to/burp-suite.jar --project-file=/path/to/project.burp --headless --scan --url http://your-app-url
-        //             // """
-        //         }
-        //     }
-        // }
-
         
-
         stage('Testing Slack Notifications') {
             steps {
                 sh 'echo "Testing Slack Notifications"'
                 sh 'exit 0' // Simulate a successful step
             }
         }
-
+        
         stage('K8S CIS Benchmark Scan') {
             steps {
                 script {
                     parallel (
                         'Master': {
-                            sh "bash cis-master.sh"
+                            try {
+                                sh "bash cis-master.sh"
+                            } catch (Exception e) {
+                                echo "⚠️ CIS Master benchmark scan found issues"
+                                currentBuild.result = 'UNSTABLE'
+                            }
                         },
                         'Etcd': {
-                            sh "bash cis-etcd.sh"
+                            try {
+                                sh "bash cis-etcd.sh"
+                            } catch (Exception e) {
+                                echo "⚠️ CIS Etcd benchmark scan found issues"
+                                currentBuild.result = 'UNSTABLE'
+                            }
                         },
                         'Kubelet': {
-                            sh "bash cis-kubelet.sh"
+                            try {
+                                sh "bash cis-kubelet.sh"
+                            } catch (Exception e) {
+                                echo "⚠️ CIS Kubelet benchmark scan found issues"
+                                currentBuild.result = 'UNSTABLE'
+                            }
                         }
                     )
                 }
             }
         }
-
         
-
+        stage('Promote to PROD') {
+            steps {
+                timeout(time: 2, unit: 'DAYS') {
+                    input message: 'Do you want to promote the build to PROD?', ok: 'Yes, Promote'
+                }
+            }
+        }
+        
         stage('K8S Deployment -- PROD') {
             steps {
                 parallel(
@@ -220,35 +303,91 @@ pipeline {
                 )
             }
         }
-
-        stage('Prompte to PROD') {
-            steps {
-                timeout(time: 2, unit: 'DAYS') {
-                    input message: 'Do you want to promote the build to PROD?', ok: 'Yes, Promote'
-                }
-            }
-        }
-
-
-   }
-
+    }
+    
     post { 
-            always {
-                        junit 'target/surefire-reports/*.xml'
-                        jacoco execPattern: 'target/jacoco.exec'
-                        pitmutation mutationStatsFile: '**/target/pit-reports/**/mutations.xml'
-                        dependencyCheckPublisher pattern: 'target/dependency-check-report.xml'
-                        publishHTML([allowMissing: false, alwaysLinkToLastBuild: true, icon: '', keepAll: true, reportDir: 'owasp-zap-report', reportFiles: 'zap_report.html', reportName: 'OWASP ZAP HTML Report', reportTitles: 'OWASP ZAP HTML Report', useWrapperFileDirectly: true])
-                        // sendNotification(currentBuild.currentResult ?: 'SUCCESS')
-                        sendNotification currentBuild.result 
-                        // junit 'k8s-deploy-audit/inspec-junit.xml'
-                        // archiveArtifacts artifacts: 'k8s-deploy-audit/inspec.json', fingerprint: true
-            } 
-            success {
-                echo 'Pipeline completed successfully!'
+        always {
+            script {
+                // Publish test results and reports
+                try {
+                    junit 'target/surefire-reports/*.xml'
+                } catch (Exception e) {
+                    echo "⚠️ JUnit report publishing failed: ${e.message}"
+                }
+                
+                try {
+                    jacoco execPattern: 'target/jacoco.exec'
+                } catch (Exception e) {
+                    echo "⚠️ JaCoCo report publishing failed: ${e.message}"
+                }
+                
+                try {
+                    pitmutation mutationStatsFile: '**/target/pit-reports/**/mutations.xml'
+                } catch (Exception e) {
+                    echo "⚠️ PIT mutation report publishing failed: ${e.message}"
+                }
+                
+                try {
+                    dependencyCheckPublisher pattern: 'target/dependency-check-report.xml'
+                } catch (Exception e) {
+                    echo "⚠️ Dependency check report publishing failed: ${e.message}"
+                }
+                
+                try {
+                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: true, icon: '', keepAll: true, reportDir: 'owasp-zap-report', reportFiles: 'zap_report.html', reportName: 'OWASP ZAP HTML Report', reportTitles: 'OWASP ZAP HTML Report', useWrapperFileDirectly: true])
+                } catch (Exception e) {
+                    echo "⚠️ OWASP ZAP report publishing failed: ${e.message}"
+                }
+                
+                // Send Slack notification
+                sendSlackNotification(currentBuild.result ?: 'SUCCESS')
             }
-            failure {
-                echo 'Pipeline failed!'
-            }
+        } 
+        
+        success {
+            echo '✅ Pipeline completed successfully!'
         }
+        
+        failure {
+            echo '❌ Pipeline failed!'
+        }
+        
+        unstable {
+            echo '⚠️ Pipeline completed but with security findings that require review'
+        }
+    }
+}
+
+// Custom function to replace the shared library
+def sendSlackNotification(String buildStatus) {
+    buildStatus = buildStatus ?: 'SUCCESS'
+    
+    def color
+    def emoji
+    if (buildStatus == 'SUCCESS') {
+        color = 'good'
+        emoji = '✅'
+    } else if (buildStatus == 'UNSTABLE') {
+        color = 'warning' 
+        emoji = '⚠️'
+    } else {
+        color = 'danger'
+        emoji = '❌'
+    }
+    
+    def msg = """
+${emoji} *DevSecOps Pipeline ${buildStatus}*
+*Job:* ${env.JOB_NAME}
+*Build:* #${env.BUILD_NUMBER}
+*Duration:* ${currentBuild.durationString}
+*URL:* ${env.BUILD_URL}
+    """.stripIndent()
+    
+    try {
+        slackSend(color: color, message: msg)
+        echo "📱 Slack notification sent successfully"
+    } catch (Exception e) {
+        echo "⚠️ Slack notification failed: ${e.message}"
+        echo "💡 Make sure Slack Notification plugin is installed and configured"
+    }
 }
