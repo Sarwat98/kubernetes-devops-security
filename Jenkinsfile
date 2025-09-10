@@ -207,19 +207,27 @@ pipeline {
         }
         
         stage('Kubernetes Security Scan') {
-            when {
-                expression { fileExists('k8s') || fileExists('kubernetes') }
-            }
             steps {
                 script {
                     sh '''
-                        find . -name "*.yaml" -o -name "*.yml" | grep -E "(k8s|kubernetes)" | while read manifest; do
-                            echo "Scanning $manifest with kube-score..."
-                            kube-score score "$manifest" || true
+                        echo "Looking for Kubernetes manifests..."
+                        
+                        # Search for any Kubernetes-related files
+                        K8S_FILES=$(find . -name "*.yaml" -o -name "*.yml" | xargs grep -l "apiVersion\|kind:" 2>/dev/null || echo "")
+                        
+                        if [ -n "$K8S_FILES" ]; then
+                            echo "Found Kubernetes manifests:"
+                            echo "$K8S_FILES"
                             
-                            echo "Scanning $manifest with kubesec..."
-                            kubesec scan "$manifest" || true
-                        done
+                            for manifest in $K8S_FILES; do
+                                echo "Scanning: $manifest"
+                                kube-score score "$manifest" || true
+                                kubesec scan "$manifest" || true
+                            done
+                        else
+                            echo "No Kubernetes manifests found in repository"
+                            echo "Repository appears to be a Java application without K8s deployment files"
+                        fi
                     '''
                 }
             }
