@@ -13,8 +13,8 @@ echo $applicationURL:$PORT/$applicationURI
 # Better check: use -n for "not empty"
 if [[ -n "$PORT" ]]; then
     # Properly quote the URL components
-    response=$(curl -s "${applicationURL}:${PORT}/${applicationURI}")
-    http_code=$(curl -s -o /dev/null -w "%{http_code}" "${applicationURL}:${PORT}/${applicationURI}")
+    response=$(curl -s "${applicationURL}:32456/${applicationURI}")
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" "${applicationURL}:32456/${applicationURI}")
     
     if [[ "$response" == "100" ]] && [[ "$http_code" == "200" ]]; then
         echo "Increment Test Passed"
