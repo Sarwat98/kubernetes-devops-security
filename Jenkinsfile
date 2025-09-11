@@ -241,9 +241,6 @@ pipeline {
         }
         
         stage('Qualys WAS Scan') {
-            when {
-                expression { return params.ENABLE_QUALYS_SCAN == true }
-            }
             steps {
                 script {
                     try {
