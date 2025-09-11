@@ -85,32 +85,30 @@ pipeline {
                         }
                     },
                     'OPA Conftest': {
-                        steps {
-                            script {
-                                try {
-                                    sh '''
-                                        echo "=== Running OPA Conftest Security Policy Tests ==="
+                        script {
+                            try {
+                                sh '''
+                                    echo "=== Running OPA Conftest Security Policy Tests ==="
+                                    
+                                    # Ensure policy file exists and has correct syntax
+                                    if [ -f "opa-docker-security.rego" ]; then
+                                        echo "✅ Policy file found"
                                         
-                                        # Ensure policy file exists and has correct syntax
-                                        if [ -f "opa-docker-security.rego" ]; then
-                                            echo "✅ Policy file found"
-                                            
-                                            # Validate Rego syntax first
-                                            docker run --rm -v $(pwd):/project openpolicyagent/opa fmt /project/opa-docker-security.rego
-                                            
-                                            # Run conftest
-                                            docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-docker-security.rego Dockerfile
-                                            
-                                            echo "✅ OPA Conftest passed"
-                                        else
-                                            echo "⚠️ Policy file not found, skipping OPA tests"
-                                        fi
-                                    '''
-                                } catch (Exception e) {
-                                    echo "⚠️ OPA Conftest failed: ${e.message}"
-                                    // Don't fail the build, but mark as unstable
-                                    currentBuild.result = 'UNSTABLE'
-                                }
+                                        # Validate Rego syntax first
+                                        docker run --rm -v $(pwd):/project openpolicyagent/opa fmt /project/opa-docker-security.rego
+                                        
+                                        # Run conftest
+                                        docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-docker-security.rego Dockerfile
+                                        
+                                        echo "✅ OPA Conftest passed"
+                                    else
+                                        echo "⚠️ Policy file not found, skipping OPA tests"
+                                    fi
+                                '''
+                            } catch (Exception e) {
+                                echo "⚠️ OPA Conftest failed: ${e.message}"
+                                // Don't fail the build, but mark as unstable
+                                currentBuild.result = 'UNSTABLE'
                             }
                         }
                     }
