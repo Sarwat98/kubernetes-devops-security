@@ -12,9 +12,9 @@ then
         echo "Increment Test Passed"
     else
         echo "Increment Test Failed"
-        exit 0;
+        exit 1;
     fi;
 else
 	echo "The Service does not have a NodePort"
-	exit 0;
+	exit 1;
 fi;
