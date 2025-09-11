@@ -84,38 +84,110 @@ pipeline {
                             }
                         }
                     },
-                    'OPA Conftest': {
-                        script {
-                            try {
-                                sh '''
-                                    echo "=== Running OPA Conftest Security Policy Tests ==="
-                                    
-                                    # Ensure policy file exists and has correct syntax
-                                    if [ -f "opa-docker-security.rego" ]; then
-                                        echo "✅ Policy file found"
-                                        
-                                        # Validate Rego syntax first
-                                        docker run --rm -v $(pwd):/project openpolicyagent/opa fmt /project/opa-docker-security.rego
-                                        
-                                        # Run conftest
-                                        docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-docker-security.rego Dockerfile
-                                        
-                                        echo "✅ OPA Conftest passed"
-                                    else
-                                        echo "⚠️ Policy file not found, skipping OPA tests"
-                                    fi
-                                '''
-                            } catch (Exception e) {
-                                echo "⚠️ OPA Conftest failed: ${e.message}"
-                                // Don't fail the build, but mark as unstable
-                                currentBuild.result = 'UNSTABLE'
-                            }
-                        }
-                    }
                 )
             }
         }
+        stage('OPA Conftest K8s') {
+            steps {
+                script {
+                    try {
+                        sh '''
+                            echo "=== Running OPA Conftest Kubernetes Security Tests ==="
+                            
+                            # Create corrected Kubernetes security policy
+                            cat > opa-k8s-security.rego << 'EOF'
+        package kubernetes.security
         
+        import rego.v1
+        
+        # Deny if Deployment is missing resource limits
+        violation contains msg if {
+            input.kind == "Deployment"
+            container := input.spec.template.spec.containers[_]
+            not container.resources.limits
+            msg := sprintf("Container '%v' is missing resource limits", [container.name])
+        }
+        
+        # Deny if container runs as root
+        violation contains msg if {
+            input.kind == "Deployment"
+            container := input.spec.template.spec.containers[_]
+            container.securityContext.runAsUser == 0
+            msg := sprintf("Container '%v' should not run as root (UID 0)", [container.name])
+        }
+        
+        # Deny if readOnlyRootFilesystem is not set to true
+        violation contains msg if {
+            input.kind == "Deployment" 
+            container := input.spec.template.spec.containers[_]
+            container.securityContext.readOnlyRootFilesystem != true
+            msg := sprintf("Container '%v' should have readOnlyRootFilesystem set to true", [container.name])
+        }
+        
+        # Warn if no security context is defined
+        warn contains msg if {
+            input.kind == "Deployment"
+            container := input.spec.template.spec.containers[_]
+            not container.securityContext
+            msg := sprintf("Container '%v' should define a securityContext", [container.name])
+        }
+        
+        # Deny if privileged containers are used
+        violation contains msg if {
+            input.kind == "Deployment"
+            container := input.spec.template.spec.containers[_]
+            container.securityContext.privileged == true
+            msg := sprintf("Container '%v' should not run in privileged mode", [container.name])
+        }
+        
+        # Deny if allowPrivilegeEscalation is not set to false
+        violation contains msg if {
+            input.kind == "Deployment"
+            container := input.spec.template.spec.containers[_]
+            container.securityContext.allowPrivilegeEscalation != false
+            msg := sprintf("Container '%v' should set allowPrivilegeEscalation to false", [container.name])
+        }
+        
+        # Warn if no resource requests are defined
+        warn contains msg if {
+            input.kind == "Deployment"
+            container := input.spec.template.spec.containers[_]
+            not container.resources.requests
+            msg := sprintf("Container '%v' should define resource requests", [container.name])
+        }
+        
+        # Deny if capabilities are not dropped
+        violation contains msg if {
+            input.kind == "Deployment"
+            container := input.spec.template.spec.containers[_]
+            not container.securityContext.capabilities.drop
+            msg := sprintf("Container '%v' should drop capabilities", [container.name])
+        }
+        EOF
+                            
+                            echo "✅ Kubernetes policy created with correct syntax"
+                            
+                            # Validate Rego syntax
+                            docker run --rm -v $(pwd):/project openpolicyagent/opa fmt /project/opa-k8s-security.rego
+                            
+                            # Run conftest against Kubernetes manifests
+                            docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-k8s-security.rego k8s_deployment_service.yaml
+                            
+                            echo "✅ OPA Kubernetes security validation passed"
+                        '''
+                    } catch (Exception e) {
+                        echo "⚠️ OPA Kubernetes security check failed: ${e.message}"
+                        
+                        sh '''
+                            echo "=== Kubernetes Security Violations Found ==="
+                            docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-k8s-security.rego k8s_deployment_service.yaml || true
+                        '''
+                        
+                        currentBuild.result = 'UNSTABLE'
+                    }
+                }
+            }
+        }
         stage('Build Docker and Push Image') {
             steps {
                 withDockerRegistry([credentialsId: 'docker-registry-credentials', url: '']) {
