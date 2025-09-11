@@ -247,9 +247,30 @@ pipeline {
             steps {
                 script {
                     try {
-                        qualysWASScan authRecord: 'none', cancelOptions: 'none', credsId: 'qualys-pass', isSev1Vulns: true, isSev2Vulns: true, isSev3Vulns: true, optionProfile: 'useDefault', platform: 'EU_PLATFORM_2', pollingInterval: '5', scanName: '[job_name]_jenkins_build_[build_number]', scanType: 'VULNERABILITY', severity1Limit: 5, severity2Limit: 5, severity3Limit: 5, vulnsTimeout: '60*24', webAppId: '346161461'
+                        echo "=== Starting Qualys WAS Vulnerability Scan ==="
+                        
+                        qualysWAScan(
+                            authRecord: 'none',
+                            cancelOptions: 'none',
+                            credsId: 'qualys-pass',
+                            isSev1Vulns: true,
+                            isSev2Vulns: true,
+                            isSev3Vulns: true,
+                            optionProfile: 'useDefault',
+                            platform: 'EU_PLATFORM_2',
+                            pollingInterval: '5',
+                            scanName: "${env.JOB_NAME}_jenkins_build_${env.BUILD_NUMBER}",
+                            scanType: 'VULNERABILITY',
+                            severity1Limit: 5,
+                            severity2Limit: 5,
+                            severity3Limit: 5,
+                            vulnsTimeout: '60*24',
+                            webAppId: '346161461'
+                        )
+                        
+                        echo "✅ Qualys WAS scan completed successfully"
                     } catch (Exception e) {
-                        echo "⚠️ Qualys WAS scan failed or found vulnerabilities: ${e.message}"
+                        echo "⚠️ Qualys WAS scan failed or detected vulnerabilities: ${e.message}"
                         currentBuild.result = 'UNSTABLE'
                     }
                 }
