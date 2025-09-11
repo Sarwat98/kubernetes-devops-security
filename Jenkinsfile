@@ -91,12 +91,10 @@ pipeline {
             steps {
                 script {
                     try {
-                        sh '''
-                            echo "=== Running OPA Conftest Kubernetes Security Tests ==="
-                            
-                            # Create Kubernetes security policy with proper heredoc
-                            cat > opa-k8s-security.rego << 'EOF'
-        package kubernetes.security
+                        echo "=== Running OPA Conftest Kubernetes Security Tests ==="
+                        
+                        // Create policy file using writeFile (more reliable)
+                        writeFile file: 'opa-k8s-security.rego', text: '''package kubernetes.security
         
         import rego.v1
         
@@ -131,18 +129,40 @@ pipeline {
             not container.securityContext
             msg := sprintf("Container '%v' should define a securityContext", [container.name])
         }
-        EOF
-                            
-                            echo "✅ Kubernetes policy created successfully"
-                            
+        
+        # Deny if privileged containers are used
+        violation contains msg if {
+            input.kind == "Deployment"
+            container := input.spec.template.spec.containers[_]
+            container.securityContext.privileged == true
+            msg := sprintf("Container '%v' should not run in privileged mode", [container.name])
+        }
+        
+        # Deny if allowPrivilegeEscalation is not set to false
+        violation contains msg if {
+            input.kind == "Deployment"
+            container := input.spec.template.spec.containers[_]
+            container.securityContext.allowPrivilegeEscalation != false
+            msg := sprintf("Container '%v' should set allowPrivilegeEscalation to false", [container.name])
+        }
+        '''
+                        
+                        echo "✅ Kubernetes policy created with writeFile"
+                        
+                        sh '''
                             # Validate and run conftest
                             docker run --rm -v $(pwd):/project openpolicyagent/opa fmt /project/opa-k8s-security.rego
                             docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-k8s-security.rego k8s_deployment_service.yaml
-                            
-                            echo "✅ OPA Kubernetes security validation passed"
                         '''
+                        
+                        echo "✅ OPA Kubernetes security validation passed"
+                        
                     } catch (Exception e) {
                         echo "⚠️ OPA Kubernetes security check failed: ${e.message}"
+                        sh '''
+                            echo "=== Kubernetes Security Violations Found ==="
+                            docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-k8s-security.rego k8s_deployment_service.yaml || true
+                        '''
                         currentBuild.result = 'UNSTABLE'
                     }
                 }
