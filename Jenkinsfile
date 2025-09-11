@@ -6,7 +6,7 @@ pipeline {
         containerName  = "devsecops-container"
         serviceName    = "devsecops-svc"
         imageName      = "sawat98/numeric-service:${GIT_COMMIT}"
-        applicationURL = "hhttp://192.168.49.2"
+        applicationURL = "hhttp://35.228.57.176"
         applicationURI = "compare/99"
         CHEF_LICENSE = 'accept-silent'      // harmless even though we use -t local://
     }
