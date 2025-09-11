@@ -246,7 +246,7 @@ pipeline {
                     try {
                         echo "=== Starting Qualys WAS Vulnerability Scan ==="
                         
-                        qualysWAScan(
+                        qualysWASScan(
                             authRecord: 'none',
                             cancelOptions: 'none',
                             credsId: 'qualys-pass',
