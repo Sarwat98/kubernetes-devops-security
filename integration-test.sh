@@ -8,7 +8,7 @@ KUBECTL_CMD="sudo /usr/local/bin/k3s kubectl"
 PORT=$(${KUBECTL_CMD} -n default get svc ${serviceName} -o json | jq -r '.spec.ports[].nodePort')
 
 echo $PORT
-echo $applicationURL:$PORT/$applicationURI
+echo $applicationURL:32456/$applicationURI
 
 # Better check: use -n for "not empty"
 if [[ -n "$PORT" ]]; then
