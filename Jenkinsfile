@@ -145,14 +145,25 @@ pipeline {
             }
         }
         
-        stage('Deploy to Kubernetes - DEV') {
+        stage('K8S Deployment -- DEV') {
             steps {
-                withKubeConfig([credentialsId: 'kubeconfig']) {
-                    script {
-                        sh "sed -i 's|image:.*|image: farisali07/numeric-service:${GIT_COMMIT}|' k8s_deployment_service.yaml"
-                        sh "kubectl apply -f k8s_deployment_service.yaml"
+                parallel(
+                    "Deployment": {
+                        withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                            sh "bash k8s-deployment.sh"
+                        }
+                    },
+                    "Rollout Status": {
+                        withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                            script {
+                                // Set longer timeout via environment variable
+                                withEnv(['ROLLOUT_TIMEOUT=600s']) {
+                                    sh "bash k8s-deployment-rollout-status.sh"
+                                }
+                            }
+                        }
                     }
-                }
+                )
             }
         }
         
