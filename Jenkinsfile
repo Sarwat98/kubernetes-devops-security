@@ -5,7 +5,7 @@ pipeline {
         deploymentName = "devsecops"
         containerName  = "devsecops-container"
         serviceName    = "devsecops-svc"
-        imageName      = "farisali07/numeric-service:${GIT_COMMIT}"
+        imageName      = "sawat98/numeric-service:${GIT_COMMIT}"
         applicationURL = "http://devsecops-demo-07.centralus.cloudapp.azure.com"
         applicationURI = "compare/99"
         CHEF_LICENSE = 'accept-silent'      // harmless even though we use -t local://
@@ -102,8 +102,8 @@ pipeline {
             steps {
                 withDockerRegistry([credentialsId: 'docker-registry-credentials', url: '']) {
                     sh 'printenv' // to see if the environment variables are set correctly
-                    sh "docker build -t sawat98/task1:${GIT_COMMIT} ."
-                    sh "docker push sawat98/task1:${GIT_COMMIT}"
+                    sh "docker build -t sawat98/numeric-service:${GIT_COMMIT} ."
+                    sh "docker push sawat98/numeric-service:${GIT_COMMIT}"
                 }
             }
         }
@@ -149,7 +149,7 @@ pipeline {
             steps {
                 withKubeConfig([credentialsId: 'kubeconfig']) {
                     script {
-                        sh "sed -i 's|image:.*|image: farisali07/numeric-service:${GIT_COMMIT}|' k8s_deployment_service.yaml"
+                        sh "sed -i 's|image:.*|image: sawat98/numeric-service:${GIT_COMMIT}|' k8s_deployment_service.yaml"
                         sh "kubectl apply -f k8s_deployment_service.yaml"
                     }
                 }
