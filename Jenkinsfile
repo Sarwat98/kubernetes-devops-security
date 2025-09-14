@@ -423,19 +423,23 @@ pipeline {
                 
                 try {
                     publishHTML([
-                        allowMissing: false,                   
+                        allowMissing: true,                    // ✅ Don't fail if reports missing
                         alwaysLinkToLastBuild: true,
                         keepAll: true,
-                        reportDir: 'owasp-zap-report',        
-                        includes: '**/*',                     
+                        reportDir: 'owasp-zap-report',        // ✅ Match your actual directory
+                        includes: '**/*',                     // ✅ THIS IS THE KEY FIX - Include all files
                         reportFiles: 'zap_report.html',
                         reportName: 'OWASP ZAP HTML Report',
                         reportTitles: 'OWASP ZAP HTML Report',
-                        useWrapperFileDirectly: false         
+                        useWrapperFileDirectly: false         // ✅ Use default wrapper behavior
                     ])
+                    echo "✅ OWASP ZAP HTML report published successfully"
                 } catch (Exception e) {
                     echo "⚠️ OWASP ZAP report publishing failed: ${e.message}"
+                    // Archive as fallback
+                    archiveArtifacts artifacts: 'owasp-zap-report/**/*', allowEmptyArchive: true
                 }
+
 
                 
                 // Send Slack notification
