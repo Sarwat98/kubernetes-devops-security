@@ -1,6 +1,14 @@
 #!/bin/bash
-mkdir -p k8s-deploy-audit
-inspec exec https://github.com/dev-sec/kubernetes-baseline \
-    --chef-license accept-silent \
-    --reporter json:k8s-deploy-audit/inspec.json \
-    --reporter junit:k8s-deploy-audit/inspec-junit.xml
+
+echo "=== Running InSpec Infrastructure Compliance Scan ==="
+
+# Run InSpec with license acceptance
+inspec exec \
+    --chef-license accept \
+    --chef-license-key "free-09f87d44-2b4f-4c9a-bfd4-f3f8f222ea24-6265" \
+    https://github.com/dev-sec/linux-baseline \
+    --target ssh://user@target-host \
+    --key-files ~/.ssh/id_rsa \
+    --reporter json:inspec-results.json cli
+
+echo "✅ InSpec scan completed"
