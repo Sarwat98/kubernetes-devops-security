@@ -292,7 +292,7 @@ pipeline {
             }
         }
         
-        /*stage('Qualys WAS Scan') {
+        stage('Qualys WAS Scan') {
             steps {
                 script {
                     try {
@@ -324,7 +324,7 @@ pipeline {
                     }
                 }
             }
-        }*/
+        }
         
         stage('Testing Slack Notifications') {
             steps {
