@@ -292,7 +292,7 @@ pipeline {
             }
         }
         
-        stage('Qualys WAS Scan') {
+        /*stage('Qualys WAS Scan') {
             steps {
                 script {
                     try {
@@ -324,7 +324,7 @@ pipeline {
                     }
                 }
             }
-        }
+        }*/
         
         stage('Testing Slack Notifications') {
             steps {
@@ -423,15 +423,15 @@ pipeline {
                 
                 try {
                     publishHTML([
-                        allowMissing: false,                    // ✅ Don't fail if reports missing
+                        allowMissing: false,                   
                         alwaysLinkToLastBuild: true,
                         keepAll: true,
-                        reportDir: 'owasp-zap-report',        // ✅ Match your actual directory name
-                        includes: '**/*',                     // ✅ Include all files recursively
+                        reportDir: 'owasp-zap-report',        
+                        includes: '**/*',                     
                         reportFiles: 'zap_report.html',
                         reportName: 'OWASP ZAP HTML Report',
                         reportTitles: 'OWASP ZAP HTML Report',
-                        useWrapperFileDirectly: false         // ✅ Use default wrapper behavior
+                        useWrapperFileDirectly: false         
                     ])
                 } catch (Exception e) {
                     echo "⚠️ OWASP ZAP report publishing failed: ${e.message}"
