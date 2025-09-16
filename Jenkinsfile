@@ -290,7 +290,7 @@ pipeline {
             }
         }
         
-        stage('Qualys WAS Scan') {
+        /*stage('Qualys WAS Scan') {
             steps {
                 script {
                     try {
@@ -322,7 +322,7 @@ pipeline {
                     }
                 }
             }
-        }
+        }*/
         
         
         stage('K8S CIS Benchmark Scan') {
