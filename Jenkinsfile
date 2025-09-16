@@ -431,7 +431,7 @@ pipeline {
                 }
 
                 slackSend(
-                    channel: "#devops",
+                    channel: "#all-zinad",
                     message: "Build ${currentBuild.result}: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                     color: currentBuild.result == 'SUCCESS' ? 'good' : 'danger',
                     tokenCredentialId: 'slack-token' 
