@@ -1,5 +1,4 @@
 #!/bin/bash
-# CIS Benchmark scripts - adjust based on your K8s setup
 total_fail=$(kube-bench run --targets master --json | jq .[].total_fail)
 if [[ "$total_fail" -ne 0 ]];
 then
