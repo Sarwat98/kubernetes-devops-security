@@ -430,7 +430,12 @@ pipeline {
                     archiveArtifacts artifacts: 'owasp-zap-report/**/*', allowEmptyArchive: true
                 }
 
-                sendSlackNotification(currentBuild.result ?: 'SUCCESS')
+                slackSend(
+                    channel: "#devops",
+                    message: "Build ${currentBuild.result}: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                    color: currentBuild.result == 'SUCCESS' ? 'good' : 'danger',
+                    tokenCredentialId: 'slack-token' 
+                )
             }
         } 
         
