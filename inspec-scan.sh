@@ -10,4 +10,4 @@ inspec exec \
     --key-files ~/.ssh/id_rsa \
     --reporter json:inspec-results.json cli
 
-echo "✅ InSpec scan completed"
+echo "InSpec scan completed"
