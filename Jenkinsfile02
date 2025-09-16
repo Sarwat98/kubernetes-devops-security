@@ -1,21 +1,20 @@
 pipeline {
     agent any
     environment {
-        SONARQUBE_ENV = 'SonarQube' // Optional: for clarity
+        SONARQUBE_ENV = 'SonarQube' 
         deploymentName = "devsecops"
         containerName  = "devsecops-container"
         serviceName    = "devsecops-svc"
         imageName      = "sawat98/numeric-service:${GIT_COMMIT}"
         applicationURL = "http://35.228.57.176"
         applicationURI = "compare/99"
-        CHEF_LICENSE = 'accept-silent'      // harmless even though we use -t local://
     }
     
     stages {
         stage('Build Artifact') {
             steps {
                 sh "mvn clean package -DskipTests=true"
-                archiveArtifacts 'target/*.jar' //so that they can be downloaded later
+                archiveArtifacts 'target/*.jar'
             }
         }  
         
@@ -40,7 +39,7 @@ pipeline {
                         try {
                             waitForQualityGate abortPipeline: true
                         } catch (Exception e) {
-                            echo "⚠️ Quality Gate failed or timed out: ${e.message}"
+                            echo "Quality Gate failed or timed out: ${e.message}"
                             currentBuild.result = 'UNSTABLE'
                         }
                     }
@@ -54,7 +53,7 @@ pipeline {
                     try {
                         sh "mvn org.pitest:pitest-maven:mutationCoverage"
                     } catch (Exception e) {
-                        echo "⚠️ PIT Mutation testing failed: ${e.message}"
+                        echo "PIT Mutation testing failed: ${e.message}"
                         currentBuild.result = 'UNSTABLE'
                     }
                 }
@@ -69,7 +68,7 @@ pipeline {
                             try {
                                 sh 'mvn org.owasp:dependency-check-maven:12.1.0:check -DautoUpdate=false'
                             } catch (Exception e) {
-                                echo "⚠️ Dependency check found vulnerabilities"
+                                echo " Dependency check found vulnerabilities"
                                 currentBuild.result = 'UNSTABLE'
                             }
                         }
@@ -79,7 +78,7 @@ pipeline {
                             try {
                                 sh "bash trivy-docker-image-scan.sh"
                             } catch (Exception e) {
-                                echo "⚠️ Trivy scan found vulnerabilities"
+                                echo " Trivy scan found vulnerabilities"
                                 currentBuild.result = 'UNSTABLE'
                             }
                         }
@@ -93,7 +92,6 @@ pipeline {
                     try {
                         echo "=== Running OPA Conftest Kubernetes Security Tests ==="
                         
-                        // Create policy file using writeFile (more reliable)
                         writeFile file: 'opa-k8s-security.rego', text: '''package kubernetes.security
         
         import rego.v1
@@ -147,7 +145,7 @@ pipeline {
         }
         '''
                         
-                        echo "✅ Kubernetes policy created with writeFile"
+                        echo "Kubernetes policy created with writeFile"
                         
                         sh '''
                             # Validate and run conftest
@@ -155,10 +153,10 @@ pipeline {
                             docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-k8s-security.rego k8s_deployment_service.yaml
                         '''
                         
-                        echo "✅ OPA Kubernetes security validation passed"
+                        echo "OPA Kubernetes security validation passed"
                         
                     } catch (Exception e) {
-                        echo "⚠️ OPA Kubernetes security check failed: ${e.message}"
+                        echo "OPA Kubernetes security check failed: ${e.message}"
                         sh '''
                             echo "=== Kubernetes Security Violations Found ==="
                             docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-k8s-security.rego k8s_deployment_service.yaml || true
@@ -171,7 +169,7 @@ pipeline {
         stage('Build Docker and Push Image') {
             steps {
                 withDockerRegistry([credentialsId: 'docker-registry-credentials', url: '']) {
-                    sh 'printenv' // to see if the environment variables are set correctly
+                    sh 'printenv'
                     sh "docker build -t sawat98/numeric-service:${GIT_COMMIT} ."
                     sh "docker push sawat98/numeric-service:${GIT_COMMIT}"
                 }
@@ -186,7 +184,7 @@ pipeline {
                             try {
                                 sh 'docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-k8s-security.rego k8s_deployment_service.yaml'
                             } catch (Exception e) {
-                                echo "⚠️ OPA Kubernetes scan found policy violations"
+                                echo " OPA Kubernetes scan found policy violations"
                                 currentBuild.result = 'UNSTABLE'
                             }
                         }
@@ -196,7 +194,7 @@ pipeline {
                             try {
                                 sh "bash kubesec-scan.sh"
                             } catch (Exception e) {
-                                echo "⚠️ Kubesec scan found security issues"
+                                echo " Kubesec scan found security issues"
                                 currentBuild.result = 'UNSTABLE'
                             }
                         }
@@ -206,7 +204,7 @@ pipeline {
                             try {
                                 sh "bash trivy-k8s-scan.sh"
                             } catch (Exception e) {
-                                echo "⚠️ Trivy Kubernetes scan found vulnerabilities"
+                                echo " Trivy Kubernetes scan found vulnerabilities"
                                 currentBuild.result = 'UNSTABLE'
                             }
                         }
@@ -234,7 +232,7 @@ pipeline {
                             try {
                                 sh "bash inspec-scan.sh"
                             } catch (Exception e) {
-                                echo "⚠️ InSpec scan found compliance issues"
+                                echo " InSpec scan found compliance issues"
                                 currentBuild.result = 'UNSTABLE'
                             }
                         }
@@ -284,7 +282,7 @@ pipeline {
                         try {
                             sh "bash owasp-zap-scan.sh"
                         } catch (Exception e) {
-                            echo "⚠️ OWASP ZAP scan found security vulnerabilities"
+                            echo " OWASP ZAP scan found security vulnerabilities"
                             currentBuild.result = 'UNSTABLE'
                         }
                     }
@@ -317,21 +315,15 @@ pipeline {
                             webAppId: '346161461'
                         )
                         
-                        echo "✅ Qualys WAS scan completed successfully"
+                        echo " Qualys WAS scan completed successfully"
                     } catch (Exception e) {
-                        echo "⚠️ Qualys WAS scan failed or detected vulnerabilities: ${e.message}"
+                        echo " Qualys WAS scan failed or detected vulnerabilities: ${e.message}"
                         currentBuild.result = 'UNSTABLE'
                     }
                 }
             }
         }
         
-        stage('Testing Slack Notifications') {
-            steps {
-                sh 'echo "Testing Slack Notifications"'
-                sh 'exit 0' // Simulate a successful step
-            }
-        }
         
         stage('K8S CIS Benchmark Scan') {
             steps {
@@ -341,7 +333,7 @@ pipeline {
                             try {
                                 sh "bash cis-master.sh"
                             } catch (Exception e) {
-                                echo "⚠️ CIS Master benchmark scan found issues"
+                                echo " CIS Master benchmark scan found issues"
                                 currentBuild.result = 'UNSTABLE'
                             }
                         },
@@ -349,7 +341,7 @@ pipeline {
                             try {
                                 sh "bash cis-etcd.sh"
                             } catch (Exception e) {
-                                echo "⚠️ CIS Etcd benchmark scan found issues"
+                                echo " CIS Etcd benchmark scan found issues"
                                 currentBuild.result = 'UNSTABLE'
                             }
                         },
@@ -357,7 +349,7 @@ pipeline {
                             try {
                                 sh "bash cis-kubelet.sh"
                             } catch (Exception e) {
-                                echo "⚠️ CIS Kubelet benchmark scan found issues"
+                                echo " CIS Kubelet benchmark scan found issues"
                                 currentBuild.result = 'UNSTABLE'
                             }
                         }
@@ -396,72 +388,67 @@ pipeline {
     post { 
         always {
             script {
-                // Publish test results and reports
                 try {
                     junit 'target/surefire-reports/*.xml'
                 } catch (Exception e) {
-                    echo "⚠️ JUnit report publishing failed: ${e.message}"
+                    echo " JUnit report publishing failed: ${e.message}"
                 }
                 
                 try {
                     jacoco execPattern: 'target/jacoco.exec'
                 } catch (Exception e) {
-                    echo "⚠️ JaCoCo report publishing failed: ${e.message}"
+                    echo " JaCoCo report publishing failed: ${e.message}"
                 }
                 
                 try {
                     pitmutation mutationStatsFile: '**/target/pit-reports/**/mutations.xml'
                 } catch (Exception e) {
-                    echo "⚠️ PIT mutation report publishing failed: ${e.message}"
+                    echo " PIT mutation report publishing failed: ${e.message}"
                 }
                 
                 try {
                     dependencyCheckPublisher pattern: 'target/dependency-check-report.xml'
                 } catch (Exception e) {
-                    echo "⚠️ Dependency check report publishing failed: ${e.message}"
+                    echo " Dependency check report publishing failed: ${e.message}"
                 }
                 
                 try {
                     publishHTML([
-                        allowMissing: true,                    // ✅ Don't fail if reports missing
+                        allowMissing: true,                   
                         alwaysLinkToLastBuild: true,
                         keepAll: true,
-                        reportDir: 'owasp-zap-report',        // ✅ Match your actual directory
-                        includes: '**/*',                     // ✅ THIS IS THE KEY FIX - Include all files
+                        reportDir: 'owasp-zap-report',       
+                        includes: '**/*',                     
                         reportFiles: 'zap_report.html',
                         reportName: 'OWASP ZAP HTML Report',
                         reportTitles: 'OWASP ZAP HTML Report',
-                        useWrapperFileDirectly: false         // ✅ Use default wrapper behavior
+                        useWrapperFileDirectly: false         
                     ])
-                    echo "✅ OWASP ZAP HTML report published successfully"
+                    echo " OWASP ZAP HTML report published successfully"
                 } catch (Exception e) {
-                    echo "⚠️ OWASP ZAP report publishing failed: ${e.message}"
-                    // Archive as fallback
+                    echo " OWASP ZAP report publishing failed: ${e.message}"
                     archiveArtifacts artifacts: 'owasp-zap-report/**/*', allowEmptyArchive: true
                 }
 
-
-                
-                // Send Slack notification
                 sendSlackNotification(currentBuild.result ?: 'SUCCESS')
             }
         } 
         
         success {
-            echo '✅ Pipeline completed successfully!'
+            echo ' Pipeline completed successfully!'
         }
         
         failure {
-            echo '❌ Pipeline failed!'
+            echo ' Pipeline failed!'
         }
         
         unstable {
-            echo '⚠️ Pipeline completed but with security findings that require review'
+            echo ' Pipeline completed but with security findings that require review'
         }
     }
 }
 
-// Custom function to replace the shared library
+
 def sendSlackNotification(String buildStatus) {
     buildStatus = buildStatus ?: 'SUCCESS'
     
